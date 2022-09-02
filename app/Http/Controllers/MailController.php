@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -30,5 +31,11 @@ class MailController extends Controller
         // return response()->json([
         //     'da'    =>"wk"
         // ]);
+        $data=DB::table("tbl_users")->get()->toArray();
+        $data=array_object_to_array($data);
+        
+        return response()->json([
+            'x' =>$data[0]['nama_lengkap']
+        ]);
     }
 }

@@ -83,3 +83,13 @@ function sum_data_in_array($array, $key){
 
     return $sum;
 }
+
+function object_to_array($object){
+    return (array)$object;
+}
+
+function array_object_to_array($array_object){
+    return array_map(function($value){
+        return (array)$value;
+    }, $array_object);
+}
