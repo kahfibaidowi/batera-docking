@@ -139,13 +139,37 @@ $router->post("/proyek/add", [
         'role:admin,shipowner,shipmanager'
     ]
 ]);
-// $router->post("/proyek/gets", [
-//     'uses'=>"ProyekController@gets",
-//     'middleware'=>[
-//         'auth',
-//         'role:admin,shipowner'
-//     ]
-// ]);
+$router->post("/proyek/gets_proyek_persiapan", [
+    'uses'=>"ProyekController@gets_proyek_persiapan",
+    'middleware'=>[
+        'auth',
+        'role:admin,shipowner,shipmanager'
+    ]
+]);
+$router->post("/proyek/gets_proyek_berjalan", [
+    'uses'=>"ProyekController@gets_proyek_berjalan",
+    'middleware'=>[
+        'auth'
+    ]
+]);
+$router->post("/proyek/get_proyek_berjalan", [
+    'uses'=>"ProyekController@get_proyek_berjalan",
+    'middleware'=>[
+        'auth'
+    ]
+]);
+$router->post("/proyek/gets_pekerjaan_mendekati_deadline", [
+    'uses'=>"ProyekController@gets_pekerjaan_mendekati_deadline",
+    'middleware'=>[
+        'auth'
+    ]
+]);
+$router->post("/proyek/gets_shipyard", [
+    'uses'=>"ProyekController@gets_shipyard",
+    'middleware'=>[
+        'auth'
+    ]
+]);
 
 //TENDER
 $router->post("/tender/add", [
@@ -167,6 +191,24 @@ $router->post("/tender/cancel_select_yard", [
     'middleware'=>[
         'auth',
         'role:admin,shipmanager,shipowner'
+    ]
+]);
+$router->post("/tender/gets_proyek", [
+    'uses'=>"TenderController@gets_proyek",
+    'middleware'=>[
+        'auth'
+    ]
+]);
+$router->post("/tender/gets_tender", [
+    'uses'=>"TenderController@gets_tender",
+    'middleware'=>[
+        'auth'
+    ]
+]);
+$router->post("/tender/gets_tender_detail", [
+    'uses'=>"TenderController@gets_tender_detail",
+    'middleware'=>[
+        'auth'
     ]
 ]);
 
@@ -192,8 +234,43 @@ $router->post("/report/reject_progress", [
         'role:admin,shipyard,shipmanager'
     ]
 ]);
+$router->post("/report/update_status", [
+    'uses'=>"ReportController@update_status",
+    'middleware'=>[
+        'auth',
+        'role:admin,shipyard,shipmanager'
+    ]
+]);
+$router->post("/report/get_proyek", [
+    'uses'=>"ReportController@get_proyek",
+    'middleware'=>[
+        'auth'
+    ]
+]);
+$router->post("/report/gets_proyek", [
+    'uses'=>"ReportController@gets_proyek",
+    'middleware'=>[
+        'auth'
+    ]
+]);
 
 //MAIL
 $router->post("/mail/send", [
     'uses'=>"MailController@send"
+]);
+
+//DASHBOARD/HOME
+$router->post("/dashboard", [
+    'uses'=>"HomeController@index",
+    'middleware'=>[
+        'auth'
+    ]
+]);
+
+//TRACKING
+$router->post("/tracking", [
+    'uses'=>"TrackingController@index",
+    'middleware'=>[
+        'auth'
+    ]
 ]);

@@ -4,6 +4,6 @@
     - Pekerjaan = {{$pekerjaan}}<br/>
     - Kuantitas = {{$qty}}<br/>
     - Harga Satuan = {{$harsat}}<br/>
-    - Tanggal Realisasi = {{$tgl_realisasi}}<br/>
+    - Tanggal Realisasi = {{$tgl_realisasi}} WIB<br/>
     - Komentar = {{$komentar}}
 </p>

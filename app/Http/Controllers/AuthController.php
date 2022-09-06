@@ -14,7 +14,6 @@ use App\Models\UserLoginModel;
 
 class AuthController extends Controller
 {
-
     public function login(Request $request)
     {
         $req=$request->all();

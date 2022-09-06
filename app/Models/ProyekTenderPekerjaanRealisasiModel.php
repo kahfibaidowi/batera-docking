@@ -15,7 +15,8 @@ class ProyekTenderPekerjaanRealisasiModel extends Model{
         'id_user_konfirmasi',
         'qty', 
         'harga_satuan',
-        'tgl_realisasi', 
+        'tgl_realisasi',
+        'status_pekerjaan',
         'status',
         'komentar_rejected'
     ];
@@ -26,4 +27,7 @@ class ProyekTenderPekerjaanRealisasiModel extends Model{
      *#FUNCTION
      *
      */
+    public function responsible(){
+        return $this->belongsTo(UserModel::class, "id_user");
+    }
 }

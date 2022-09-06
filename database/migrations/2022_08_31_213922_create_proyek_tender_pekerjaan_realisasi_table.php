@@ -21,6 +21,7 @@ return new class extends Migration
             $table->dateTime("tgl_realisasi");
             $table->double("qty")->comment("kuantitas pekerjaan per hari");
             $table->double("harga_satuan");
+            $table->text("status_pekerjaan")->comment("status pekerjaan");
             $table->text("status")->default("pending")->comment("status progress diupdate owner");
             $table->text("komentar_rejected");
             $table->timestamps();
@@ -32,6 +33,11 @@ return new class extends Migration
                 ->onDelete("cascade");
                 
             $table->foreign("id_user")
+                ->references("id_user")
+                ->on("tbl_users")
+                ->onDelete("cascade");
+
+            $table->foreign("id_user_konfirmasi")
                 ->references("id_user")
                 ->on("tbl_users")
                 ->onDelete("cascade");

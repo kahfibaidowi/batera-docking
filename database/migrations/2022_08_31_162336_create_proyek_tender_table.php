@@ -32,6 +32,8 @@ return new class extends Migration
             $table->unsignedInteger("rencana_repair_additional_day");
             $table->double("rencana_diskon_umum_persen")->default(0);
             $table->double("rencana_diskon_tambahan");
+            // $table->date("realisasi_off_hire_start")->nullable();
+            // $table->date("realisasi_off_hire_end")->nullable();
             $table->timestamps();
 
             //fk

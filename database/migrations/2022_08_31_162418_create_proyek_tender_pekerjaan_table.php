@@ -26,6 +26,7 @@ return new class extends Migration
             $table->text("kategori_3");
             $table->text("kategori_4");
             $table->date("rencana_deadline");
+            $table->text("status")->default("requisition");
             $table->timestamps();
 
             //fk

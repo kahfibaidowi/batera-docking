@@ -20,7 +20,8 @@ class ProyekTenderPekerjaanModel extends Model{
         'kategori_2', 
         'kategori_3', 
         'kategori_4', 
-        'rencana_deadline'
+        'rencana_deadline',
+        'status'
     ];
     protected $hidden=[];
 
@@ -29,4 +30,15 @@ class ProyekTenderPekerjaanModel extends Model{
      *#FUNCTION
      *
      */
+    public function realisasi(){
+        return $this->hasMany(ProyekTenderPekerjaanRealisasiModel::class, "id_proyek_tender_pekerjaan")->orderBy("tgl_realisasi");
+    }
+
+    public function rencana(){
+        return $this->hasMany(ProyekTenderPekerjaanRencanaModel::class, "id_proyek_tender_pekerjaan")->orderBy("tgl_rencana");
+    }
+
+    public function proyek_tender(){
+        return $this->belongsTo(ProyekTenderModel::class, "id_proyek_tender");
+    }
 }

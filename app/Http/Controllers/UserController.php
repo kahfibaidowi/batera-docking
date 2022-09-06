@@ -12,6 +12,7 @@ use App\Models\UserLoginModel;
 class UserController extends Controller
 {
 
+    
     public function add(Request $request)
     {
         $login_data=$request['fm__login_data'];
@@ -60,6 +61,7 @@ class UserController extends Controller
         ]);
     }
 
+    
     public function gets(Request $request)
     {
         $login_data=$request['fm__login_data'];
@@ -107,11 +109,17 @@ class UserController extends Controller
 
         //order & paginate
         $users=$users->orderByDesc("id_user")
-            ->paginate($req['per_page']);
+            ->paginate($req['per_page'])->toArray();
 
-        return response()->json($users);
+        return response()->json([
+            'first_page'    =>1,
+            'current_page'  =>$users['current_page'],
+            'last_page'     =>$users['last_page'],
+            'data'          =>$users['data']
+        ]);
     }
 
+    
     public function get(Request $request)
     {
         $login_data=$request['fm__login_data'];
@@ -136,6 +144,7 @@ class UserController extends Controller
         ]);
     }
 
+    
     public function delete(Request $request)
     {
         $login_data=$request['fm__login_data'];
@@ -168,6 +177,7 @@ class UserController extends Controller
         ]);
     }
 
+    
     public function update(Request $request)
     {
         $login_data=$request['fm__login_data'];

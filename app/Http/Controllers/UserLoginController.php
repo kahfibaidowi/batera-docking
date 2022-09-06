@@ -11,6 +11,7 @@ use App\Models\UserModel;
 class UserLoginController extends Controller
 {
 
+    
     public function gets(Request $request)
     {
         $login_data=$request['fm__login_data'];
@@ -55,11 +56,17 @@ class UserLoginController extends Controller
         //order & paginate
         $users_login=$users_login
             ->orderByDesc("id_user_login")
-            ->paginate($req['per_page']);
+            ->paginate($req['per_page'])->toArray();
 
-        return response()->json($users_login);
+        return response()->json([
+            'first_page'    =>1,
+            'current_page'  =>$users_login['current_page'],
+            'last_page'     =>$users_login['last_page'],
+            'data'          =>$users_login['data']
+        ]);
     }
 
+    
     public function delete(Request $request)
     {
         $login_data=$request['fm__login_data'];
@@ -85,6 +92,7 @@ class UserLoginController extends Controller
         ]);
     }
 
+    
     public function delete_expired()
     {
         //SUCCESS

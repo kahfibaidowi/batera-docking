@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\DB;
+use App\Models\UserModel;
 use App\Models\ProyekModel;
 use App\Models\ProyekPekerjaanModel;
 use App\Models\ProyekBiayaModel;
@@ -19,6 +20,7 @@ use App\Models\ProyekTenderPekerjaanRencanaModel;
 class TenderController extends Controller
 {
 
+    
     public function add(Request $request)
     {
         $login_data=$request['fm__login_data'];
@@ -197,10 +199,10 @@ class TenderController extends Controller
                     'id_tender' =>$tender_id,
                     'pekerjaan' =>$pekerjaan['pekerjaan'],
                     'satuan'    =>$pekerjaan['satuan'],
-                    'kategori_1'=>$pekerjaan['kategori_1'],
-                    'kategori_2'=>$pekerjaan['kategori_2'],
-                    'kategori_3'=>$pekerjaan['kategori_3'],
-                    'kategori_4'=>$pekerjaan['kategori_4'],
+                    'kategori_1'=>trim($pekerjaan['kategori_1']),
+                    'kategori_2'=>trim($pekerjaan['kategori_2']),
+                    'kategori_3'=>trim($pekerjaan['kategori_3']),
+                    'kategori_4'=>trim($pekerjaan['kategori_4']),
                     'id_proyek_pekerjaan'   =>$val['id_proyek_pekerjaan'],
                     'qty'           =>$val['qty'],
                     'harga_satuan'  =>$val['harga_satuan'],
@@ -221,7 +223,7 @@ class TenderController extends Controller
             'status'=>"ok"
         ]);
     }
-
+    
     public function select_yard(Request $request)
     {
         $login_data=$request['fm__login_data'];
@@ -385,42 +387,240 @@ class TenderController extends Controller
         ]);
     }
 
-    // public function gets(Request $request)
-    // {
-    //     $login_data=$request['fm__login_data'];
-    //     $req=$request->all();
+    public function gets_proyek(Request $request)
+    {
+        $login_data=$request['fm__login_data'];
+        $req=$request->all();
 
-    //     //VALIDATION
-    //     $validation=Validator::make($req, [
-    //         'per_page'  =>"required|numeric|min:1",
-    //         'q'         =>[
-    //             Rule::requiredIf(!isset($req['q'])),
-    //             'regex:/^[\pL\s\-]+$/u'
-    //         ],
-    //     ]);
-    //     if($validation->fails()){
-    //         return response()->json([
-    //             'error' =>"VALIDATION_ERROR",
-    //             'data'  =>$validation->errors()
-    //         ], 500);
-    //     }
+        //VALIDATION
+        $validation=Validator::make($req, [
+            'per_page'  =>"required|numeric|min:1",
+            'q'         =>[
+                Rule::requiredIf(!isset($req['q'])),
+            ]
+        ]);
+        if($validation->fails()){
+            return response()->json([
+                'error' =>"VALIDATION_ERROR",
+                'data'  =>$validation->errors()
+            ], 500);
+        }
 
-    //     //SUCCESS
-    //     $proyek=ProyekModel::select()
-    //         ->selectRaw("(rate_per_day*(off_hire_period+deviasi)) as rate")
-    //         ->selectRaw("(bunker_per_day*(off_hire_period+deviasi)) as bunker")
-    //         ->with("owner:id_user,nama_lengkap,jabatan,avatar_url,role");
-    //     //role
-    //     if($login_data['role']=="shipowner"){
-    //         $proyek=$proyek->where("id_user", $login_data['id_user']);
-    //     }
-    //     //search
-    //     $proyek=$proyek->where("vessel", "ilike", "%".$req['q']."%");
+        //SUCCESS
+        //--------------------------------------------------------------------------------
+        //query
+        $proyek=ProyekModel::
+            where("tender_status", "opened")
+            ->where("status", "published");
+        //q
+        $proyek=$proyek->where("vessel", "ilike", "%".$req['q']."%");
+        //shipowner
+        if($login_data['role']=="shipowner"){
+            $proyek=$proyek->where("id_user", $login_data['id_user']);
+        }
 
-    //     //paginate & order
-    //     $proyek=$proyek->orderByDesc("id_proyek")
-    //         ->paginate($req['per_page']);
+        //select, order & paginate
+        $proyek=$proyek->orderByDesc("id_proyek")
+            ->paginate($req['per_page'])
+            ->toArray();
+        //end query
+        //---------------------------------------------------------------------------------
 
-    //     return response()->json($proyek);
-    // }
+        return response()->json([
+            'first_page'    =>1,
+            'current_page'  =>$proyek['current_page'],
+            'last_page'     =>$proyek['last_page'],
+            'data'          =>$proyek['data']
+        ]);
+    }
+
+    public function gets_tender(Request $request)
+    {
+        $login_data=$request['fm__login_data'];
+        $req=$request->all();
+
+        //VALIDATION
+        $validation=Validator::make($req, [
+            'id_proyek'  =>[
+                "required",
+                function($attr, $value, $fail)use($req, $login_data){
+                    $v=DB::table("tbl_proyek as a")
+                        ->join("tbl_tender as b", "b.id_proyek", "=", "a.id_proyek")
+                        ->where("a.id_proyek", $value)
+                        ->where("a.status", "published")
+                        ->where("a.tender_status", "opened")
+                        ->select("a.id_user as id_user_shipowner", "b.id_user as id_user_shipyard");
+                    
+                    //not found
+                    if($v->count()==0){
+                        return $fail($attr." not found");
+                    }
+
+                    //shipowner
+                    $data=$v->first();
+                    if($login_data['role']=="shipowner"){
+                        if($data->id_user_shipowner!=$login_data['id_user']){
+                            return $fail($attr." not found");
+                        }
+                    }
+
+                    return true;
+                }
+            ]
+        ]);
+        if($validation->fails()){
+            return response()->json([
+                'error' =>"VALIDATION_ERROR",
+                'data'  =>$validation->errors()
+            ], 500);
+        }
+
+        //SUCCESS
+        //--------------------------------------------------------------------------------
+        //query
+        $tender=TenderModel::
+            with([
+                "shipyard:id_user,nama_lengkap,avatar_url,username"
+            ])
+            ->withCount(["pekerjaan as yard_list_pekerjaan"=>function($query){
+                $query->select(DB::raw("sum(qty*harga_satuan)"));
+            }])
+            ->where("status", "published")
+            ->where("id_proyek", $req['id_proyek'])
+            ->orderByDesc("id_tender")
+            ->get()->toArray();
+        
+        $tender=convert_object_to_array($tender);
+        //end query
+        //---------------------------------------------------------------------------------
+
+        $data=[];
+        foreach($tender as $val){
+            $proyek_biaya=ProyekBiayaModel::where("id_proyek", $val['id_proyek'])
+                ->select(['off_hire_start', 'off_hire_end', 'off_hire_period', 'off_hire_deviasi', 'off_hire_rate_per_day', 'off_hire_bunker_per_day', 'list_pekerjaan'])
+                ->first()->toArray();
+
+            $owner_off_hire_rate=($proyek_biaya['off_hire_period']+$proyek_biaya['off_hire_deviasi'])*$proyek_biaya['off_hire_rate_per_day'];
+            $owner_off_hire_bunker=($proyek_biaya['off_hire_period']+$proyek_biaya['off_hire_deviasi'])*$proyek_biaya['off_hire_bunker_per_day'];
+            $yard_off_hire_rate=($val['off_hire_period']+$val['off_hire_deviasi'])*$val['off_hire_rate_per_day'];
+            $yard_off_hire_bunker=($val['off_hire_period']+$val['off_hire_deviasi'])*$val['off_hire_bunker_per_day'];
+            $total_quote=$yard_off_hire_rate+$yard_off_hire_bunker+$val['yard_list_pekerjaan'];
+            $diskon_umum=($val['diskon_umum_persen']/100)*$total_quote;
+            //yard from owner
+            $yard_off_hire_rate_owner=($val['off_hire_period']+$val['off_hire_deviasi'])*$proyek_biaya['off_hire_rate_per_day'];
+            $yard_off_hire_bunker_owner=($val['off_hire_period']+$val['off_hire_deviasi'])*$proyek_biaya['off_hire_bunker_per_day'];
+            $total_quote_owner=$yard_off_hire_rate_owner+$yard_off_hire_bunker_owner+$val['yard_list_pekerjaan'];
+            $diskon_umum_owner=($val['diskon_umum_persen']/100)*$total_quote_owner;
+
+            //data
+            $data[]=array_merge_without($val, ["off_hire_start", "off_hire_end", "off_hire_period", "off_hire_deviasi", "off_hire_rate_per_day", "off_hire_bunker_per_day", "diskon_umum_persen", "diskon_umum_tambahan", "yard_list_pekerjaan"], [
+                'owner_budget'  =>array_merge($proyek_biaya, [
+                    'off_hire_rate'     =>$owner_off_hire_rate,
+                    'off_hire_bunker'   =>$owner_off_hire_bunker,
+                    'off_hire'          =>$owner_off_hire_rate+$owner_off_hire_bunker,
+                    'total_cost'        =>$owner_off_hire_rate+$owner_off_hire_bunker+$proyek_biaya['list_pekerjaan']
+                ]),
+                'yard_budget'   =>[
+                    'off_hire_start'        =>$val['off_hire_start'],
+                    'off_hire_end'          =>$val['off_hire_end'],
+                    'off_hire_period'       =>$val['off_hire_period'],
+                    'off_hire_deviasi'      =>$val['off_hire_deviasi'],
+                    'off_hire_rate_per_day' =>$val['off_hire_rate_per_day'],
+                    'off_hire_bunker_per_day'=>$val['off_hire_bunker_per_day'],
+                    'off_hire_rate'         =>$yard_off_hire_rate,
+                    'off_hire_bunker'       =>$yard_off_hire_bunker,
+                    'off_hire'              =>$yard_off_hire_rate+$yard_off_hire_bunker,
+                    'off_hire_rate_owner'   =>$yard_off_hire_rate_owner,
+                    'off_hire_bunker_owner' =>$yard_off_hire_bunker_owner,
+                    'off_hire_owner'        =>$yard_off_hire_rate_owner+$yard_off_hire_bunker_owner,
+                    'list_pekerjaan'        =>$val['yard_list_pekerjaan'],
+                    "diskon_umum"           =>$diskon_umum,
+                    'diskon_umum_owner'     =>$diskon_umum_owner,
+                    "diskon_tambahan"       =>$val['diskon_tambahan'],
+                    'total_quote'           =>$total_quote,
+                    'total_quote_owner'     =>$total_quote_owner
+                ]
+            ]);
+        }
+
+        return response()->json([
+            'data'  =>$data
+        ]);
+    }
+
+    public function gets_tender_detail(Request $request)
+    {
+        $login_data=$request['fm__login_data'];
+        $req=$request->all();
+
+        //VALIDATION
+        $validation=Validator::make($req, [
+            'id_proyek'  =>[
+                "required",
+                function($attr, $value, $fail)use($req, $login_data){
+                    $v=DB::table("tbl_proyek as a")
+                        ->join("tbl_tender as b", "b.id_proyek", "=", "a.id_proyek")
+                        ->where("a.id_proyek", $value)
+                        ->where("a.status", "published")
+                        ->where("a.tender_status", "opened")
+                        ->select("a.id_user as id_user_shipowner", "b.id_user as id_user_shipyard");
+                    
+                    //not found
+                    if($v->count()==0){
+                        return $fail($attr." not found");
+                    }
+
+                    //shipowner
+                    $data=$v->first();
+                    if($login_data['role']=="shipowner"){
+                        if($data->id_user_shipowner!=$login_data['id_user']){
+                            return $fail($attr." not found");
+                        }
+                    }
+
+                    return true;
+                }
+            ]
+        ]);
+        if($validation->fails()){
+            return response()->json([
+                'error' =>"VALIDATION_ERROR",
+                'data'  =>$validation->errors()
+            ], 500);
+        }
+
+        //SUCCESS
+        //--------------------------------------------------------------------------------
+        //query
+        $tender=TenderModel::with([
+                "shipyard:id_user,nama_lengkap,avatar_url,username"
+            ])
+            ->where("status", "published")
+            ->where("id_proyek", $req['id_proyek']);
+        
+        $tender=$tender->orderByDesc("id_proyek")
+            ->get()->toArray();
+        
+        $tender=convert_object_to_array($tender);
+        //end query
+        //---------------------------------------------------------------------------------
+
+        $data=[];
+        foreach($tender as $val){
+            $tender_pekerjaan=TenderPekerjaanModel::where("id_tender", $val['id_tender'])
+                ->orderBy("id_proyek_pekerjaan")
+                ->get()->toArray();
+
+            $tender_pekerjaan=$tender_pekerjaan;
+            $pekerjaan=get_tender_rencana_per_kategori($tender_pekerjaan);
+            $data[]=[
+                'pekerjaan' =>$pekerjaan,
+                'total_cost'=>get_total_cost_tender_rencana($tender_pekerjaan)
+            ];
+        }
+
+        return response()->json([
+            'data'  =>$data
+        ]);
+    }
 }

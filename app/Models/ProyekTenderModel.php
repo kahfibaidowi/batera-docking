@@ -27,6 +27,8 @@ class ProyekTenderModel extends Model{
         'rencana_repair_additional_day', 
         'rencana_diskon_umum_persen', 
         'rencana_diskon_tambahan'
+        // 'realisasi_off_hire_start',
+        // 'realisasi_off_hire_end'
     ];
     protected $hidden=[];
 
@@ -35,4 +37,15 @@ class ProyekTenderModel extends Model{
      *#FUNCTION
      *
      */
+    public function pekerjaan(){
+        return $this->hasMany(ProyekTenderPekerjaanModel::class, "id_proyek_tender")->orderBy("id_proyek_pekerjaan");
+    }
+
+    public function shipyard(){
+        return $this->belongsTo(UserModel::class, "id_user");
+    }
+
+    public function proyek(){
+        return $this->belongsTo(ProyekModel::class, "id_proyek");
+    }
 }

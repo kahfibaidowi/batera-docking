@@ -21,4 +21,12 @@ class TenderModel extends Model{
     public function proyek(){
         return $this->belongsTo(ProyekModel::class, "id_proyek");
     }
+
+    public function shipyard(){
+        return $this->belongsTo(UserModel::class, "id_user");
+    }
+
+    public function pekerjaan(){
+        return $this->hasMany(TenderPekerjaanModel::class, "id_tender");
+    }
 }

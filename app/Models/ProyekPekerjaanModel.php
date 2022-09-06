@@ -9,7 +9,16 @@ class ProyekPekerjaanModel extends Model{
 
     protected $table="tbl_proyek_pekerjaan";
     protected $primaryKey="id_proyek_pekerjaan";
-    protected $fillable=['id_proyek', 'satuan', 'qty', 'pekerjaan', 'kategori_1', 'kategori_2', 'kategori_3', 'kategori_4'];
+    protected $fillable=[
+        'id_proyek', 
+        'satuan', 
+        'qty', 
+        'pekerjaan', 
+        'kategori_1', 
+        'kategori_2', 
+        'kategori_3', 
+        'kategori_4'
+    ];
     protected $hidden=[];
 
 
@@ -17,4 +26,7 @@ class ProyekPekerjaanModel extends Model{
      *#FUNCTION
      *
      */
+    public function proyek(){
+        return $this->belongsTo(ProyekModel::class, "id_proyek");
+    }
 }

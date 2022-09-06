@@ -20,4 +20,20 @@ class ProyekModel extends Model{
     public function owner(){
         return $this->belongsTo(UserModel::class, "id_user");
     }
+
+    public function tender(){
+        return $this->hasMany(TenderModel::class, "id_proyek");
+    }
+
+    public function biaya(){
+        return $this->hasOne(ProyekBiayaModel::class, "id_proyek");
+    }
+
+    public function proyek_tender(){
+        return $this->hasOne(ProyekTenderModel::class, "id_proyek");
+    }
+
+    public function pekerjaan(){
+        return $this->hasMany(ProyekPekerjaanModel::class, "id_proyek");
+    }
 }

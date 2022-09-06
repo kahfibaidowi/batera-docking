@@ -15,6 +15,7 @@ use App\Models\UserModel;
 class MailController extends Controller
 {
 
+    
     public function send(Request $request)
     {
         // $details=[
@@ -31,11 +32,15 @@ class MailController extends Controller
         // return response()->json([
         //     'da'    =>"wk"
         // ]);
-        $data=DB::table("tbl_users")->get()->toArray();
-        $data=array_object_to_array($data);
+        // $data=DB::table("tbl_users")->get()->toArray();
+        // $data=array_object_to_array($data);
         
-        return response()->json([
-            'x' =>$data[0]['nama_lengkap']
-        ]);
+        // return response()->json([
+        //     'x' =>$data[0]['nama_lengkap']
+        // ]);
+
+        // return response()->json([
+        //     'a' =>add_date(date("Y-m-d"), -2)
+        // ]);
     }
 }
