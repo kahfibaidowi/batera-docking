@@ -227,9 +227,14 @@ class AuthController extends Controller
         //SUCCESS
         $user_tokens=UserLoginModel::where("id_user", $login_data['id_user'])
             ->orderByDesc("id_user_login")
-            ->paginate($req['per_page']);
+            ->paginate($req['per_page'])->toArray();
 
-        return response()->json($user_tokens);
+        return response()->json([
+            'first_page'    =>1,
+            'current_page'  =>$user_tokens['current_page'],
+            'last_page'     =>$user_tokens['last_page'],
+            'data'          =>$user_tokens['data']
+        ]);
     }
 
     public function delete_token(Request $request)

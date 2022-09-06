@@ -13,7 +13,6 @@ use App\Models\UserModel;
 class FileController extends Controller
 {
 
-    
     public function upload(Request $request)
     {
         $login_data=$request['fm__login_data'];
@@ -46,7 +45,6 @@ class FileController extends Controller
             ]
         ]);
     }
-
     
     public function show($file)
     {

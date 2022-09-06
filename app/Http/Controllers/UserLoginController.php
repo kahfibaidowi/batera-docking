@@ -65,7 +65,6 @@ class UserLoginController extends Controller
             'data'          =>$users_login['data']
         ]);
     }
-
     
     public function delete(Request $request)
     {
@@ -91,7 +90,6 @@ class UserLoginController extends Controller
             'status'=>"ok"
         ]);
     }
-
     
     public function delete_expired()
     {

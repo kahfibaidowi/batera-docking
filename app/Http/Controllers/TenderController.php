@@ -19,7 +19,6 @@ use App\Models\ProyekTenderPekerjaanRencanaModel;
 
 class TenderController extends Controller
 {
-
     
     public function add(Request $request)
     {
@@ -221,6 +220,32 @@ class TenderController extends Controller
 
         return response()->json([
             'status'=>"ok"
+        ]);
+    }
+
+    public function get_template_proyek(Request $request)
+    {
+        $login_data=$request['fm__login_data'];
+        $req=$request->all();
+
+        //VALIDATION
+        $validation=Validator::make($req, [
+            'id_proyek' =>"required|exists:App\Models\ProyekModel,id_proyek"
+        ]);
+        if($validation->fails()){
+            return response()->json([
+                'error' =>"VALIDATION_ERROR",
+                'data'  =>$validation->errors()
+            ], 500);
+        }
+
+        //SUCCESS
+        $pekerjaan=ProyekPekerjaanModel::where("id_proyek", $req['id_proyek'])
+            ->orderBy("id_proyek_pekerjaan")
+            ->get()->toArray();
+
+        return response()->json([
+            'data'  =>$pekerjaan
         ]);
     }
     
@@ -445,11 +470,10 @@ class TenderController extends Controller
                 "required",
                 function($attr, $value, $fail)use($req, $login_data){
                     $v=DB::table("tbl_proyek as a")
-                        ->join("tbl_tender as b", "b.id_proyek", "=", "a.id_proyek")
                         ->where("a.id_proyek", $value)
                         ->where("a.status", "published")
                         ->where("a.tender_status", "opened")
-                        ->select("a.id_user as id_user_shipowner", "b.id_user as id_user_shipyard");
+                        ->select("a.id_user as id_user_shipowner");
                     
                     //not found
                     if($v->count()==0){

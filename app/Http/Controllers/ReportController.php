@@ -381,4 +381,60 @@ class ReportController extends Controller
             ])
         ]);
     }
+
+    public function update_status(Request $request)
+    {
+        $login_data=$request['fm__login_data'];
+        $req=$request->all();
+
+        //VALIDATION
+        $validation=Validator::make($req, [
+            'id_proyek'   =>[
+                "required",
+                "exists:App\models\ProyekModel,id_proyek",
+                function($attr, $value, $fail)use($req, $login_data){
+                    $data=DB::table("tbl_proyek_tender as a")
+                        ->join("tbl_proyek as b", "a.id_proyek", "=", "b.id_proyek")
+                        ->select("a.id_user as id_user_shipyard", "b.id_user as id_user_shipowner")
+                        ->where("a.id_proyek", $value)
+                        ->where("b.tender_status", "complete")
+                        ->whereIn("b.status", ['requisition', 'in_progress', 'evaluasi']);
+
+                    //not found
+                    if($data->count()==0){
+                        return $fail($attr." not found");
+                    }
+                    
+                    $data=$data->first();
+                    //shipyard
+                    if($login_data['role']=="shipyard"){
+                        if($data->id_user_shipyard!=$login_data['id_user']){
+                            return $fail($attr." not found");
+                        }
+                    }
+
+                    return true;
+                }
+            ],
+            "status"    =>"required|in:requisition,in_progress,evaluasi"
+        ]);
+        if($validation->fails()){
+            return response()->json([
+                'error' =>"VALIDATION_ERROR",
+                'data'  =>$validation->errors()
+            ], 500);
+        }
+
+        //SUCCESS
+        DB::transaction(function() use($req, $login_data){
+            ProyekModel::where("id_proyek", $req['id_proyek'])
+                ->update([
+                    "status"=>$req['status']
+                ]);
+        });
+
+        return response()->json([
+            'status'=>"ok"
+        ]);
+    }
 }

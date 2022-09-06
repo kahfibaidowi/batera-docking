@@ -211,6 +211,13 @@ $router->post("/tender/gets_tender_detail", [
         'auth'
     ]
 ]);
+$router->post("/tender/get_template_proyek", [
+    'uses'=>"TenderController@get_template_proyek",
+    'middleware'=>[
+        'auth',
+        'role:admin,shipmanager,shipyard'
+    ]
+]);
 
 //REPORT
 $router->post("/report/update_progress", [
@@ -231,7 +238,7 @@ $router->post("/report/reject_progress", [
     'uses'=>"ReportController@reject_progress",
     'middleware'=>[
         'auth',
-        'role:admin,shipyard,shipmanager'
+        'role:admin,shipowner,shipmanager'
     ]
 ]);
 $router->post("/report/update_status", [
@@ -253,6 +260,13 @@ $router->post("/report/gets_proyek", [
         'auth'
     ]
 ]);
+$router->post("/report/update_status", [
+    'uses'=>"ReportController@update_status",
+    'middleware'=>[
+        'auth',
+        'role:admin,shipyard,shipmanager'
+    ]
+]);
 
 //MAIL
 $router->post("/mail/send", [
@@ -272,5 +286,21 @@ $router->post("/tracking", [
     'uses'=>"TrackingController@index",
     'middleware'=>[
         'auth'
+    ]
+]);
+
+//PENGATURAN
+$router->post("/pengaturan/get_profile_perusahaan", [
+    'uses'=>"PengaturanController@get_profile_perusahaan",
+    'middleware'=>[
+        'auth',
+        'role:admin'
+    ]
+]);
+$router->post("/pengaturan/update_profile_perusahaan", [
+    'uses'=>"PengaturanController@update_profile_perusahaan",
+    'middleware'=>[
+        'auth',
+        'role:admin'
     ]
 ]);

@@ -141,7 +141,7 @@ class ProyekController extends Controller
         //--------------------------------------------------------------------------------
         //query
         $proyek=DB::table("tbl_proyek");
-        $proyek->where("tender_status", "complete");
+        $proyek->where("tender_status", "pending");
         //q
         $proyek->where("vessel", "ilike", "%".$req['q']."%");
         //status
