@@ -30,4 +30,7 @@ class ProyekTenderPekerjaanRealisasiModel extends Model{
     public function responsible(){
         return $this->belongsTo(UserModel::class, "id_user");
     }
+    public function confirmed_by(){
+        return $this->belongsTo(UserModel::class, "id_user_konfirmasi");
+    }
 }

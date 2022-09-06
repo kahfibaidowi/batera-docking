@@ -357,7 +357,13 @@ class ReportController extends Controller
         //--------------------------------------------------------------------------------
         //query
         $proyek=ProyekModel::
-            with("proyek_tender", "proyek_tender.pekerjaan", "proyek_tender.pekerjaan.realisasi")
+            with([
+                "proyek_tender", 
+                "proyek_tender.pekerjaan", 
+                "proyek_tender.pekerjaan.realisasi", 
+                "proyek_tender.pekerjaan.realisasi.responsible",
+                "proyek_tender.pekerjaan.realisasi.confirmed_by"
+            ])
             ->where("id_proyek", $req['id_proyek'])
             ->first()->toArray();
         

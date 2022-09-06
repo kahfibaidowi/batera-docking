@@ -56,6 +56,8 @@ class TrackingController extends Controller
         $proyek=$proyek->with([
             'proyek_tender.pekerjaan',
             'proyek_tender.pekerjaan.realisasi',
+            'proyek_tender.pekerjaan.realisasi.responsible',
+            'proyek_tender.pekerjaan.realisasi.confirmed_by',
             'proyek_tender.pekerjaan.rencana'
         ]);
         //q
@@ -87,7 +89,7 @@ class TrackingController extends Controller
                 ->first();
             $graph=get_graph_tracking_proyek($val['proyek_tender']);
 
-            $data[]=array_merge($val, [
+            $data[]=array_merge_without($val, ['proyek_tender'], [
                 'shipowner' =>$owner,
                 'shipyard'  =>$yard,
                 'graph'     =>$graph
