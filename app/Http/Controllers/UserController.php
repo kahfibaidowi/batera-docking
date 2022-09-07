@@ -12,7 +12,6 @@ use App\Models\UserLoginModel;
 class UserController extends Controller
 {
 
-    
     public function add(Request $request)
     {
         $login_data=$request['fm__login_data'];
@@ -61,7 +60,6 @@ class UserController extends Controller
         ]);
     }
 
-    
     public function gets(Request $request)
     {
         $login_data=$request['fm__login_data'];
@@ -119,13 +117,13 @@ class UserController extends Controller
         ]);
     }
 
-    
-    public function get(Request $request)
+    public function get(Request $request, $id)
     {
         $login_data=$request['fm__login_data'];
         $req=$request->all();
 
         //VALIDATION
+        $req['id_user']=$id;
         $validation=Validator::make($req, [
             'id_user'   =>"required|exists:App\Models\UserModel,id_user"
         ]);
@@ -144,13 +142,13 @@ class UserController extends Controller
         ]);
     }
 
-    
-    public function delete(Request $request)
+    public function delete(Request $request, $id)
     {
         $login_data=$request['fm__login_data'];
         $req=$request->all();
 
         //VALIDATION
+        $req['id_user']=$id;
         $validation=Validator::make($req, [
             'id_user'   =>"required|exists:App\Models\UserModel,id_user"
         ]);
@@ -177,13 +175,13 @@ class UserController extends Controller
         ]);
     }
 
-    
-    public function update(Request $request)
+    public function update(Request $request, $id)
     {
         $login_data=$request['fm__login_data'];
         $req=$request->all();
 
         //VALIDATION
+        $req['id_user']=$id;
         $validation=Validator::make($req, [
             'id_user'       =>"required|exists:App\Models\UserModel,id_user",
             'username'      =>[

@@ -237,12 +237,13 @@ class AuthController extends Controller
         ]);
     }
 
-    public function delete_token(Request $request)
+    public function delete_token(Request $request, $id)
     {
         $login_data=$request['fm__login_data'];
         $req=$request->all();
 
         //VALIDATION
+        $req['id_user_login']=$id;
         $validation=Validator::make($req, [
             'id_user_login' =>[
                 "required",

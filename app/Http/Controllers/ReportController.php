@@ -305,12 +305,13 @@ class ReportController extends Controller
         ]);
     }
 
-    public function get_proyek(Request $request)
+    public function get_proyek(Request $request, $id)
     {
         $login_data=$request['fm__login_data'];
         $req=$request->all();
 
         //VALIDATION
+        $req['id_proyek']=$id;
         $validation=Validator::make($req, [
             'id_proyek'   =>[
                 "required",
@@ -382,12 +383,13 @@ class ReportController extends Controller
         ]);
     }
 
-    public function update_status(Request $request)
+    public function update_status(Request $request, $id)
     {
         $login_data=$request['fm__login_data'];
         $req=$request->all();
 
         //VALIDATION
+        $req['id_proyek']=$id;
         $validation=Validator::make($req, [
             'id_proyek'   =>[
                 "required",

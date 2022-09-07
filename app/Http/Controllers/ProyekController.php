@@ -15,7 +15,7 @@ use App\Models\UserModel;
 
 class ProyekController extends Controller
 {
-    public function add(Request $request)
+    public function add_all(Request $request)
     {
         $login_data=$request['fm__login_data'];
         $req=$request->all();
@@ -284,26 +284,6 @@ class ProyekController extends Controller
             'data'          =>$data
         ]);
     }
-
-    public function gets_shipyard(Request $request)
-    {
-        $login_data=$request['fm__login_data'];
-        $req=$request->all();
-
-        //SUCCESS
-        $yard=UserModel::select([
-                "nama_lengkap",
-                "username",
-                "avatar_url",
-                "id_user"
-            ])
-            ->where("role", "shipyard")
-            ->get();
-
-        return response()->json([
-            'data'  =>$yard
-        ]);
-    }
     
     public function gets_proyek_berjalan(Request $request)
     {
@@ -384,12 +364,13 @@ class ProyekController extends Controller
         ]);
     }
 
-    public function get_proyek_berjalan(Request $request)
+    public function get_proyek_berjalan(Request $request, $id)
     {
         $login_data=$request['fm__login_data'];
         $req=$request->all();
 
         //VALIDATION
+        $req['id_proyek']=$id;
         $validation=Validator::make($req, [
             'id_proyek' =>[
                 'required',
@@ -537,6 +518,26 @@ class ProyekController extends Controller
 
         return response()->json([
             'data'  =>$data
+        ]);
+    }
+    
+    public function gets_shipyard(Request $request)
+    {
+        $login_data=$request['fm__login_data'];
+        $req=$request->all();
+
+        //SUCCESS
+        $yard=UserModel::select([
+                "nama_lengkap",
+                "username",
+                "avatar_url",
+                "id_user"
+            ])
+            ->where("role", "shipyard")
+            ->get();
+
+        return response()->json([
+            'data'  =>$yard
         ]);
     }
 }

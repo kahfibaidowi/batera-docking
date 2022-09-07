@@ -11,7 +11,6 @@ use App\Models\UserModel;
 class UserLoginController extends Controller
 {
 
-    
     public function gets(Request $request)
     {
         $login_data=$request['fm__login_data'];
@@ -66,12 +65,13 @@ class UserLoginController extends Controller
         ]);
     }
     
-    public function delete(Request $request)
+    public function delete(Request $request, $id)
     {
         $login_data=$request['fm__login_data'];
         $req=$request->all();
 
         //VALIDATION
+        $req['id_user_login']=$id;
         $validation=Validator::make($req, [
             'id_user_login' =>"required|exists:App\Models\UserLoginModel,id_user_login"
         ]);
