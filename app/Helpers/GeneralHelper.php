@@ -166,25 +166,26 @@ function filter_space_kategori($pekerjaan){
     return $data;
 }
 function remove_empty_kategori($params){
-    if(trim($params['kategori_1'])==""){
-        unset($params['kategori_1']);
+    $new_params=$params;
+    if(trim($new_params['kategori_1'])==""){
+        unset($new_params['kategori_1']);
     }
-    if(trim($params['kategori_2'])==""){
-        unset($params['kategori_2']);
+    if(trim($new_params['kategori_2'])==""){
+        unset($new_params['kategori_2']);
     }
-    if(trim($params['kategori_3'])==""){
-        unset($params['kategori_3']);
+    if(trim($new_params['kategori_3'])==""){
+        unset($new_params['kategori_3']);
     }
-    if(trim($params['kategori_4'])==""){
-        unset($params['kategori_4']);
+    if(trim($new_params['kategori_4'])==""){
+        unset($new_params['kategori_4']);
     }
 
-    return $params;
+    return $new_params;
 }
 function get_pekerjaan_kategori($pekerjaan){
     $pekerjaan=filter_space_kategori($pekerjaan);
 
-    //generate kategori
+    //generate kategori 1-4
     $kategori=[];
     foreach($pekerjaan as $val){
         for($i=1;$i<=4;$i++){
@@ -410,12 +411,16 @@ function last_change_realisasi($array_data, $params){
     foreach($mfilter as $val){
         foreach($val['realisasi'] as $v2){
             if($data!=""){
-                if(strtotime($data)<strtotime($v2["tgl_realisasi"])){
-                    $data=with_timezone($v2["tgl_realisasi"]);
+                if($v2['status']=="applied"){
+                    if(strtotime($data)<strtotime($v2["tgl_realisasi"])){
+                        $data=with_timezone($v2["tgl_realisasi"]);
+                    }
                 }
             }
             else{
-                $data=with_timezone($v2["tgl_realisasi"]);
+                if($v2['status']=="applied"){
+                    $data=with_timezone($v2["tgl_realisasi"]);
+                }
             }
         }
     }
@@ -672,11 +677,15 @@ function get_start_date_tracking_realisasi($pekerjaan){
     foreach($pekerjaan as $val){
         foreach($val['realisasi'] as $v2){
             if($start_date==""){
-                $start_date=date("Y-m-d", strtotime($v2['tgl_realisasi']));
+                if($v2['status']=="applied"){
+                    $start_date=date("Y-m-d", strtotime($v2['tgl_realisasi']));
+                }
             }
             else{
-                if(strtotime($start_date)>strtotime($v2['tgl_realisasi'])){
-                    $start_date=date("Y-m-d", strtotime($v2['tgl_realisasi']));
+                if($v2['status']=="applied"){
+                    if(strtotime($start_date)>strtotime($v2['tgl_realisasi'])){
+                        $start_date=date("Y-m-d", strtotime($v2['tgl_realisasi']));
+                    }
                 }
             }
         }
@@ -689,11 +698,15 @@ function get_end_date_tracking_realisasi($pekerjaan){
     foreach($pekerjaan as $val){
         foreach($val['realisasi'] as $v2){
             if($end_date==""){
-                $end_date=date("Y-m-d", strtotime($v2['tgl_realisasi']));
+                if($v2['status']=="applied"){
+                    $end_date=date("Y-m-d", strtotime($v2['tgl_realisasi']));
+                }
             }
             else{
-                if(strtotime($end_date)<strtotime($v2['tgl_realisasi'])){
-                    $end_date=date("Y-m-d", strtotime($v2['tgl_realisasi']));
+                if($v2['status']=="applied"){
+                    if(strtotime($end_date)<strtotime($v2['tgl_realisasi'])){
+                        $end_date=date("Y-m-d", strtotime($v2['tgl_realisasi']));
+                    }
                 }
             }
         }
