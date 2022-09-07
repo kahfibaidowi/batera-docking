@@ -34,6 +34,6 @@ class ProyekModel extends Model{
     }
 
     public function pekerjaan(){
-        return $this->hasMany(ProyekPekerjaanModel::class, "id_proyek");
+        return $this->hasMany(ProyekPekerjaanModel::class, "id_proyek")->orderBy("id_proyek_pekerjaan");
     }
 }

@@ -146,6 +146,14 @@ function array_merge_without($array, $without, $merge){
 
     return array_merge($new_array, $merge);
 }
+function array_without($array, $without){
+    $new_array=$array;
+    foreach($without as $w){
+        if(isset($new_array[$w])) unset($new_array[$w]);
+    }
+
+    return $new_array;
+}
 
 
 

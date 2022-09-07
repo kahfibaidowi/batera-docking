@@ -15,6 +15,302 @@ use App\Models\UserModel;
 
 class ProyekController extends Controller
 {
+    //PROYEK
+    public function add(Request $request)
+    {
+        $login_data=$request['fm__login_data'];
+        $req=$request->all();
+
+        //VALIDATION
+        $validation=Validator::make($req, [
+            //project
+            'id_user'       =>[
+                Rule::requiredIf(function()use($login_data){
+                    if($login_data['role']=="shipowner"){
+                        return false;
+                    }
+                    return true;
+                }),
+                Rule::exists("App\Models\UserModel")->where(function($query)use($req){
+                    return $query->where("id_user", $req['id_user'])
+                        ->where("role", "shipowner");
+                })
+            ],
+            'vessel'        =>"required|regex:/^[\pL\s\-]+$/u",
+            'tahun'         =>"required|integer|digits:4",
+            'foto'          =>[
+                'required',
+                'ends_with:.jpg,.png,.jpeg',
+                function($attr, $value, $fail)use($req){
+                    if(is_image_file($req['foto'])){
+                        return true;
+                    }
+                    return $fail($attr." image not found");
+                }
+            ],
+            'deskripsi'     =>"required",
+
+            //project detail
+            'detail.off_hire_start'     =>"required|date_format:Y-m-d",
+            'detail.off_hire_end'       =>"required|date_format:Y-m-d|after_or_equal:detail.off_hire_start",
+            'detail.off_hire_deviasi'   =>"required|numeric|min:0",
+            'detail.off_hire_rate_per_day'  =>"required|numeric|min:0", 
+            'detail.off_hire_bunker_per_day'=>"required|numeric|min:0",
+            'detail.list_pekerjaan'     =>"required|numeric|min:0"
+        ]);
+        if($validation->fails()){
+            return response()->json([
+                'error' =>"VALIDATION_ERROR",
+                'data'  =>$validation->errors()
+            ], 500);
+        }
+
+        //SUCCESS
+        DB::transaction(function() use($req, $login_data){
+            //proyek
+            $id_user=$login_data['role']!="shipowner"?$req['id_user']:$login_data['id_user'];
+            $proyek=ProyekModel::create([
+                'id_user'       =>$id_user,
+                'vessel'        =>$req['vessel'],
+                'tahun'         =>$req['tahun'],
+                'foto'          =>$req['foto'],
+                'currency'      =>"IDR",
+                'prioritas'     =>"high",
+                'negara'        =>"indonesia",
+                'deskripsi'     =>$req['deskripsi'],
+                'status'        =>"draft",
+                'tender_status' =>"pending"
+            ]);
+            $proyek_id=$proyek->id_proyek;
+
+            //proyek biaya
+            $off_hire_period=count_day($req['detail']['off_hire_start'], $req['detail']['off_hire_end']);
+            ProyekBiayaModel::create([
+                'id_proyek'     =>$proyek_id,
+                'off_hire_start'=>$req['detail']['off_hire_start'],
+                'off_hire_end'  =>$req['detail']['off_hire_end'],
+                'off_hire_period'       =>$off_hire_period,
+                'off_hire_deviasi'      =>$req['detail']['off_hire_deviasi'],
+                'off_hire_rate_per_day' =>$req['detail']['off_hire_rate_per_day'],
+                'off_hire_bunker_per_day'=>$req['detail']['off_hire_bunker_per_day'],
+                'list_pekerjaan'=>$req['detail']['list_pekerjaan']
+            ]);
+        });
+
+        return response()->json([
+            'status'=>"ok"
+        ]);
+    }
+
+    public function get_draft(Request $request, $id)
+    {
+        $login_data=$request['fm__login_data'];
+        $req=$request->all();
+
+        //VALIDATION
+        $req['id_proyek']=$id;
+        $validation=Validator::make($req, [
+            'id_proyek' =>[
+                "required",
+                Rule::exists("App\Models\ProyekModel")->where(function($query)use($req, $login_data){
+                    //shipowner
+                    if($login_data['role']=="shipowner"){
+                        return $query->where("id_user", $login_data['id_user'])
+                            ->where("id_proyek", $req['id_proyek'])
+                            ->where("status", "draft");
+                    }
+                    return $query->where("status", "draft");
+                })
+            ]
+        ]);
+        if($validation->fails()){
+            return response()->json([
+                'error' =>"VALIDATION_ERROR",
+                'data'  =>$validation->errors()
+            ], 500);
+        }
+
+        //SUCCESS
+        $proyek=ProyekModel::with("pekerjaan", "biaya")
+            ->where("id_proyek", $req['id_proyek'])
+            ->first()->toArray();
+
+        $data=array_merge_without($proyek, ['biaya'], [
+            'detail'=>$proyek['biaya']
+        ]);
+        return response()->json([
+            'data'  =>$data
+        ]);
+    }
+
+    public function publish(Request $request, $id)
+    {
+        $login_data=$request['fm__login_data'];
+        $req=$request->all();
+
+        //VALIDATION
+        $req['id_proyek']=$id;
+        $validation=Validator::make($req, [
+            'id_proyek' =>[
+                "required",
+                Rule::exists("App\Models\ProyekModel")->where(function($query)use($req, $login_data){
+                    //shipowner
+                    if($login_data['role']=="shipowner"){
+                        return $query->where("id_user", $login_data['id_user'])
+                            ->where("id_proyek", $req['id_proyek'])
+                            ->where("status", "draft");
+                    }
+                    return $query->where("status", "draft");
+                }),
+                function($attr, $value, $fail)use($req){
+                    $v=ProyekPekerjaanModel::where("id_proyek", $req['id_proyek']);
+                    
+                    if($v->count()==0){
+                        return $fail("pekerjaan not found");
+                    }
+                    return true;
+                }
+            ]
+        ]);
+        if($validation->fails()){
+            return response()->json([
+                'error' =>"VALIDATION_ERROR",
+                'data'  =>$validation->errors()
+            ], 500);
+        }
+
+        //SUCCESS
+        DB::transaction(function() use($req, $login_data){
+            ProyekModel::where("id_proyek", $req['id_proyek'])
+                ->update([
+                    'status'        =>"published",
+                    'tender_status' =>"opened"
+                ]);
+        });
+
+        return response()->json([
+            'status'=>"ok"
+        ]);
+    }
+
+    public function delete(Request $request, $id)
+    {
+        $login_data=$request['fm__login_data'];
+        $req=$request->all();
+
+        //VALIDATION
+        $req['id_proyek']=$id;
+        $validation=Validator::make($req, [
+            'id_proyek' =>[
+                "required",
+                Rule::exists("App\Models\ProyekModel")->where(function($query)use($req, $login_data){
+                    //shipowner
+                    if($login_data['role']=="shipowner"){
+                        return $query->where("id_user", $login_data['id_user'])
+                            ->where("id_proyek", $req['id_proyek'])
+                            ->where("status", "draft");
+                    }
+                    return $query->where("status", "draft");
+                })
+            ]
+        ]);
+        if($validation->fails()){
+            return response()->json([
+                'error' =>"VALIDATION_ERROR",
+                'data'  =>$validation->errors()
+            ], 500);
+        }
+
+        //SUCCESS
+        DB::transaction(function() use($req, $login_data){
+            ProyekModel::where("id_proyek", $req['id_proyek'])
+                ->delete();
+        });
+
+        return response()->json([
+            'status'=>"ok"
+        ]);
+    }
+
+    public function update(Request $request, $id)
+    {
+        $login_data=$request['fm__login_data'];
+        $req=array_without($request->all(), ['fm__login_data']);
+
+        //VALIDATION
+        $req['id_proyek']=$id;
+        $validation=Validator::make($req, [
+            'id_proyek' =>[
+                "required",
+                Rule::exists("App\Models\ProyekModel")->where(function($query)use($req, $login_data){
+                    //shipowner
+                    if($login_data['role']=="shipowner"){
+                        return $query->where("id_user", $login_data['id_user'])
+                            ->where("id_proyek", $req['id_proyek'])
+                            ->where("status", "draft");
+                    }
+                    return $query->where("status", "draft");
+                })
+            ],
+            'vessel'        =>"required|regex:/^[\pL\s\-]+$/u",
+            'tahun'         =>"required|integer|digits:4",
+            'foto'          =>[
+                'required',
+                'ends_with:.jpg,.png,.jpeg',
+                function($attr, $value, $fail)use($req){
+                    if(is_image_file($req['foto'])){
+                        return true;
+                    }
+                    return $fail($attr." image not found");
+                }
+            ],
+            'deskripsi'     =>"required",
+
+            //project detail
+            'detail.off_hire_start'     =>"required|date_format:Y-m-d",
+            'detail.off_hire_end'       =>"required|date_format:Y-m-d|after_or_equal:detail.off_hire_start",
+            'detail.off_hire_deviasi'   =>"required|numeric|min:0",
+            'detail.off_hire_rate_per_day'  =>"required|numeric|min:0", 
+            'detail.off_hire_bunker_per_day'=>"required|numeric|min:0",
+            'detail.list_pekerjaan'     =>"required|numeric|min:0"
+        ]);
+        if($validation->fails()){
+            return response()->json([
+                'error' =>"VALIDATION_ERROR",
+                'data'  =>$validation->errors()
+            ], 500);
+        }
+
+        //SUCCESS
+        DB::transaction(function() use($req, $login_data){
+            //proyek
+            ProyekModel::where("id_proyek", $req['id_proyek'])
+                ->update([
+                    'vessel'        =>$req['vessel'],
+                    'tahun'         =>$req['tahun'],
+                    'foto'          =>$req['foto'],
+                    'deskripsi'     =>$req['deskripsi']
+                ]);
+
+            //proyek biaya
+            $off_hire_period=count_day($req['detail']['off_hire_start'], $req['detail']['off_hire_end']);
+            ProyekBiayaModel::where("id_proyek", $req['id_proyek'])
+                ->update([
+                    'off_hire_start'=>$req['detail']['off_hire_start'],
+                    'off_hire_end'  =>$req['detail']['off_hire_end'],
+                    'off_hire_period'       =>$off_hire_period,
+                    'off_hire_deviasi'      =>$req['detail']['off_hire_deviasi'],
+                    'off_hire_rate_per_day' =>$req['detail']['off_hire_rate_per_day'],
+                    'off_hire_bunker_per_day'=>$req['detail']['off_hire_bunker_per_day'],
+                    'list_pekerjaan'=>$req['detail']['list_pekerjaan']
+                ]);
+        });
+
+        return response()->json([
+            'status'=>"ok"
+        ]);
+    }
+
     public function add_all(Request $request)
     {
         $login_data=$request['fm__login_data'];
@@ -538,6 +834,155 @@ class ProyekController extends Controller
 
         return response()->json([
             'data'  =>$yard
+        ]);
+    }
+
+    //PEKERJAAN
+    public function add_pekerjaan(Request $request)
+    {
+        $login_data=$request['fm__login_data'];
+        $req=$request->all();
+
+        //VALIDATION
+        $validation=Validator::make($req, [
+            //project
+            'id_proyek' =>[
+                "required",
+                Rule::exists("App\Models\ProyekModel")->where(function($query)use($req, $login_data){
+                    //shipowner
+                    if($login_data['role']=="shipowner"){
+                        return $query->where("id_user", $login_data['id_user'])
+                            ->where("id_proyek", $req['id_proyek'])
+                            ->where("status", "draft");
+                    }
+                    return $query->where("status", "draft");
+                })
+            ],
+            'pekerjaan' =>"required",
+            'kategori_1'=>"required",
+            'kategori_2'=>[Rule::requiredIf(!isset($req['kategori_2']))],
+            'kategori_3'=>[Rule::requiredIf(!isset($req['kategori_3']))],
+            'kategori_4'=>[Rule::requiredIf(!isset($req['kategori_4']))],
+            'qty'       =>"required|numeric|min:0",
+            'satuan'    =>"required"
+        ]);
+        if($validation->fails()){
+            return response()->json([
+                'error' =>"VALIDATION_ERROR",
+                'data'  =>$validation->errors()
+            ], 500);
+        }
+
+        //SUCCESS
+        DB::transaction(function() use($req, $login_data){
+            ProyekPekerjaanModel::create($req);
+        });
+
+        return response()->json([
+            'status'=>"ok"
+        ]);
+    }
+
+    public function update_pekerjaan(Request $request, $id)
+    {
+        $login_data=$request['fm__login_data'];
+        $req=array_without($request->all(), ['fm__login_data']);
+
+        //VALIDATION
+        $req['id_proyek_pekerjaan']=$id;
+        $validation=Validator::make($req, [
+            //project
+            'id_proyek_pekerjaan' =>[
+                "required",
+                function($attr, $value, $fail)use($req, $login_data){
+                    $v=DB::table("tbl_proyek as a")
+                        ->join("tbl_proyek_pekerjaan as b", "b.id_proyek", "=", "a.id_proyek")
+                        ->where("b.id_proyek_pekerjaan", $value)
+                        ->where("a.status", "draft");
+                    
+                    if($v->count()==0){
+                        return $fail($attr." not found");
+                    }
+                    if($login_data['role']=="shipowner"){
+                        if($v->first()['id_user']!=$login_data['id_user']){
+                            return $fail($attr." not found");
+                        }
+                    }
+
+                    return true;
+                }
+            ],
+            'pekerjaan' =>"required",
+            'kategori_1'=>"required",
+            'kategori_2'=>[Rule::requiredIf(!isset($req['kategori_2']))],
+            'kategori_3'=>[Rule::requiredIf(!isset($req['kategori_3']))],
+            'kategori_4'=>[Rule::requiredIf(!isset($req['kategori_4']))],
+            'qty'       =>"required|numeric|min:0",
+            'satuan'    =>"required"
+        ]);
+        if($validation->fails()){
+            return response()->json([
+                'error' =>"VALIDATION_ERROR",
+                'data'  =>$validation->errors()
+            ], 500);
+        }
+
+        //SUCCESS
+        DB::transaction(function() use($req, $login_data){
+            ProyekPekerjaanModel::where("id_proyek_pekerjaan", $req['id_proyek_pekerjaan'])
+                ->update(array_without($req, ['id_proyek_pekerjaan']));
+        });
+
+        return response()->json([
+            'status'=>"ok"
+        ]);
+    }
+
+    public function delete_pekerjaan(Request $request, $id)
+    {
+        $login_data=$request['fm__login_data'];
+        $req=$request->all();
+
+        //VALIDATION
+        $req['id_proyek_pekerjaan']=$id;
+        $validation=Validator::make($req, [
+            //project
+            'id_proyek_pekerjaan' =>[
+                "required",
+                function($attr, $value, $fail)use($req, $login_data){
+                    $v=DB::table("tbl_proyek as a")
+                        ->join("tbl_proyek_pekerjaan as b", "b.id_proyek", "=", "a.id_proyek")
+                        ->where("b.id_proyek_pekerjaan", $value)
+                        ->where("a.status", "draft");
+                    
+                    if($v->count()==0){
+                        return $fail($attr." not found");
+                    }
+                    if($login_data['role']=="shipowner"){
+                        if($v->first()['id_user']!=$login_data['id_user']){
+                            return $fail($attr." not found");
+                        }
+                    }
+
+                    return true;
+                }
+            ]
+        ]);
+        if($validation->fails()){
+            return response()->json([
+                'error' =>"VALIDATION_ERROR",
+                'data'  =>$validation->errors()
+            ], 500);
+        }
+
+        //SUCCESS
+        DB::transaction(function() use($req, $login_data){
+            ProyekPekerjaanModel::where("id_proyek_pekerjaan", $req['id_proyek_pekerjaan'])
+                ->delete();
+        });
+
+        return response()->json([
+            'status'=>"ok"
         ]);
     }
 }

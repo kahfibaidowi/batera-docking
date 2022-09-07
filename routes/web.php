@@ -132,6 +132,41 @@ $router->get("/file/show/{file}", [
 ]);
 
 //PROYEK
+$router->post("/proyek", [
+    'uses'=>"ProyekController@add",
+    'middleware'=>[
+        'auth',
+        'role:admin,shipowner,shipmanager'
+    ]
+]);
+$router->put("/proyek/id/{id}", [
+    'uses'=>"ProyekController@update",
+    'middleware'=>[
+        'auth',
+        'role:admin,shipowner,shipmanager'
+    ]
+]);
+$router->delete("/proyek/id/{id}", [
+    'uses'=>"ProyekController@delete",
+    'middleware'=>[
+        'auth',
+        'role:admin,shipowner,shipmanager'
+    ]
+]);
+$router->get("/proyek/id/{id}/draft", [
+    'uses'=>"ProyekController@get_draft",
+    'middleware'=>[
+        'auth',
+        'role:admin,shipowner,shipmanager'
+    ]
+]);
+$router->put("/proyek/id/{id}/publish", [
+    'uses'=>"ProyekController@publish",
+    'middleware'=>[
+        'auth',
+        'role:admin,shipowner,shipmanager'
+    ]
+]);
 $router->post("/proyek/add_all", [
     'uses'=>"ProyekController@add_all",
     'middleware'=>[
@@ -168,6 +203,27 @@ $router->get("/proyek/pekerjaan/mendekati_deadline", [
     'uses'=>"ProyekController@gets_pekerjaan_mendekati_deadline",
     'middleware'=>[
         'auth'
+    ]
+]);
+$router->post("/proyek/pekerjaan", [
+    'uses'=>"ProyekController@add_pekerjaan",
+    'middleware'=>[
+        'auth',
+        'role:admin,shipmanager,shipowner'
+    ]
+]);
+$router->put("/proyek/pekerjaan/id/{id}", [
+    'uses'=>"ProyekController@update_pekerjaan",
+    'middleware'=>[
+        'auth',
+        'role:admin,shipmanager,shipowner'
+    ]
+]);
+$router->delete("/proyek/pekerjaan/id/{id}", [
+    'uses'=>"ProyekController@delete_pekerjaan",
+    'middleware'=>[
+        'auth',
+        'role:admin,shipmanager,shipowner'
     ]
 ]);
 
