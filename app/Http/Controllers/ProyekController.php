@@ -15,7 +15,6 @@ use App\Models\UserModel;
 
 class ProyekController extends Controller
 {
-
     public function add(Request $request)
     {
         $login_data=$request['fm__login_data'];
