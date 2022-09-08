@@ -47,14 +47,14 @@ $router->get("/auth/token", [
         'auth'
     ]
 ]);
-$router->delete("/auth/token/id/{id}", [
-    'uses'=>"AuthController@delete_token",
+$router->delete("/auth/token/{id}", [
+    'uses'=>"AuthController@delete_token_by_id",
     'middleware'=>[
         'auth'
     ]
 ]);
-$router->delete("/auth/token/expired", [
-    'uses'=>"AuthController@delete_token_expired",
+$router->delete("/auth/token", [
+    'uses'=>"AuthController@delete_token",
     'middleware'=>[
         'auth'
     ]
@@ -68,15 +68,15 @@ $router->get("/user_login", [
         'role:admin'
     ]
 ]);
-$router->delete("/user_login/id/{id}", [
-    'uses'  =>"UserLoginController@delete",
+$router->delete("/user_login/{id}", [
+    'uses'  =>"UserLoginController@delete_by_id",
     'middleware'=>[
         'auth',
         'role:admin'
     ]
 ]);
-$router->delete("/user_login/expired", [
-    'uses'  =>"UserLoginController@delete_expired",
+$router->delete("/user_login", [
+    'uses'  =>"UserLoginController@delete",
     'middleware'=>[
         'auth',
         'role:admin'
@@ -98,22 +98,22 @@ $router->post("/user", [
         'role:admin'
     ]
 ]);
-$router->get("/user/id/{id}", [
-    'uses'  =>"UserController@get",
+$router->get("/user/{id}", [
+    'uses'  =>"UserController@get_by_id",
     'middleware'=>[
         'auth',
         'role:admin'
     ]
 ]);
-$router->delete("/user/id/{id}", [
-    'uses'  =>"UserController@delete",
+$router->delete("/user/{id}", [
+    'uses'  =>"UserController@delete_by_id",
     'middleware'=>[
         'auth',
         'role:admin'
     ]
 ]);
-$router->put("/user/id/{id}", [
-    'uses'  =>"UserController@update",
+$router->put("/user/{id}", [
+    'uses'  =>"UserController@update_by_id",
     'middleware'=>[
         'auth',
         'role:admin'
@@ -139,34 +139,6 @@ $router->post("/proyek", [
         'role:admin,shipowner,shipmanager'
     ]
 ]);
-$router->put("/proyek/id/{id}", [
-    'uses'=>"ProyekController@update",
-    'middleware'=>[
-        'auth',
-        'role:admin,shipowner,shipmanager'
-    ]
-]);
-$router->delete("/proyek/id/{id}", [
-    'uses'=>"ProyekController@delete",
-    'middleware'=>[
-        'auth',
-        'role:admin,shipowner,shipmanager'
-    ]
-]);
-$router->get("/proyek/id/{id}/draft", [
-    'uses'=>"ProyekController@get_draft",
-    'middleware'=>[
-        'auth',
-        'role:admin,shipowner,shipmanager'
-    ]
-]);
-$router->put("/proyek/id/{id}/publish", [
-    'uses'=>"ProyekController@publish",
-    'middleware'=>[
-        'auth',
-        'role:admin,shipowner,shipmanager'
-    ]
-]);
 $router->post("/proyek/add_all", [
     'uses'=>"ProyekController@add_all",
     'middleware'=>[
@@ -174,33 +146,54 @@ $router->post("/proyek/add_all", [
         'role:admin,shipowner,shipmanager'
     ]
 ]);
-$router->get("/proyek/persiapan", [
-    'uses'=>"ProyekController@gets_proyek_persiapan",
+$router->put("/proyek/{id}", [
+    'uses'=>"ProyekController@update_by_id",
     'middleware'=>[
         'auth',
         'role:admin,shipowner,shipmanager'
     ]
 ]);
-$router->get("/proyek/berjalan", [
-    'uses'=>"ProyekController@gets_proyek_berjalan",
+$router->delete("/proyek/{id}", [
+    'uses'=>"ProyekController@delete_by_id",
     'middleware'=>[
-        'auth'
+        'auth',
+        'role:admin,shipowner,shipmanager'
     ]
 ]);
-$router->get("/proyek/berjalan/id/{id}", [
+$router->get("/proyek/{id}/draft", [
+    'uses'=>"ProyekController@get_draft_by_id",
+    'middleware'=>[
+        'auth',
+        'role:admin,shipowner,shipmanager'
+    ]
+]);
+$router->put("/proyek/{id}/publish", [
+    'uses'=>"ProyekController@publish_by_id",
+    'middleware'=>[
+        'auth',
+        'role:admin,shipowner,shipmanager'
+    ]
+]);
+$router->get("/proyek/{id}/berjalan", [
     'uses'=>"ProyekController@get_proyek_berjalan",
     'middleware'=>[
         'auth'
     ]
 ]);
-$router->get("/proyek/shipyard", [
+$router->get("/proyek", [
+    'uses'=>"ProyekController@gets_proyek",
+    'middleware'=>[
+        'auth'
+    ]
+]);
+$router->get("/proyek/user/shipyard", [
     'uses'=>"ProyekController@gets_shipyard",
     'middleware'=>[
         'auth'
     ]
 ]);
-$router->get("/proyek/pekerjaan/mendekati_deadline", [
-    'uses'=>"ProyekController@gets_pekerjaan_mendekati_deadline",
+$router->get("/proyek/pekerjaan", [
+    'uses'=>"ProyekController@gets_pekerjaan",
     'middleware'=>[
         'auth'
     ]
@@ -212,14 +205,14 @@ $router->post("/proyek/pekerjaan", [
         'role:admin,shipmanager,shipowner'
     ]
 ]);
-$router->put("/proyek/pekerjaan/id/{id}", [
+$router->put("/proyek/pekerjaan/{id}", [
     'uses'=>"ProyekController@update_pekerjaan",
     'middleware'=>[
         'auth',
         'role:admin,shipmanager,shipowner'
     ]
 ]);
-$router->delete("/proyek/pekerjaan/id/{id}", [
+$router->delete("/proyek/pekerjaan/{id}", [
     'uses'=>"ProyekController@delete_pekerjaan",
     'middleware'=>[
         'auth',
@@ -255,19 +248,19 @@ $router->get("/tender/proyek", [
         'auth'
     ]
 ]);
-$router->get("/tender/proyek/id/{id}", [
+$router->get("/tender/proyek/{id}", [
     'uses'=>"TenderController@gets_tender",
     'middleware'=>[
         'auth'
     ]
 ]);
-$router->get("/tender/proyek/id/{id}/detail", [
+$router->get("/tender/proyek/{id}/detail", [
     'uses'=>"TenderController@gets_tender_detail",
     'middleware'=>[
         'auth'
     ]
 ]);
-$router->get("/tender/proyek/id/{id}/template", [
+$router->get("/tender/proyek/{id}/template", [
     'uses'=>"TenderController@get_template_proyek",
     'middleware'=>[
         'auth',
@@ -303,13 +296,13 @@ $router->get("/report/proyek", [
         'auth'
     ]
 ]);
-$router->get("/report/proyek/id/{id}", [
+$router->get("/report/proyek/{id}", [
     'uses'=>"ReportController@get_proyek",
     'middleware'=>[
         'auth'
     ]
 ]);
-$router->put("/report/proyek/id/{id}/update_status", [
+$router->put("/report/proyek/{id}/update_status", [
     'uses'=>"ReportController@update_status",
     'middleware'=>[
         'auth',

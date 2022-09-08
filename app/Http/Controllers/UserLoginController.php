@@ -65,7 +65,8 @@ class UserLoginController extends Controller
         ]);
     }
     
-    public function delete(Request $request, $id)
+    //DELETE
+    public function delete_by_id(Request $request, $id)
     {
         $login_data=$request['fm__login_data'];
         $req=$request->all();
@@ -91,7 +92,17 @@ class UserLoginController extends Controller
         ]);
     }
     
-    public function delete_expired()
+    public function delete(Request $request)
+    {
+        switch($request->get("type")){
+            //hapus expired
+            case "expired":
+                return $this->delete_expired($request);
+            break;
+
+        }
+    }
+    private function delete_expired(Request $request)
     {
         //SUCCESS
         UserLoginModel::where("expired", "<", date("Y-m-d H:i:s"))

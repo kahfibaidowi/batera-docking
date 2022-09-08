@@ -12,6 +12,7 @@ use App\Models\UserLoginModel;
 class UserController extends Controller
 {
 
+    //INSERT
     public function add(Request $request)
     {
         $login_data=$request['fm__login_data'];
@@ -60,6 +61,7 @@ class UserController extends Controller
         ]);
     }
 
+    //GET
     public function gets(Request $request)
     {
         $login_data=$request['fm__login_data'];
@@ -117,7 +119,7 @@ class UserController extends Controller
         ]);
     }
 
-    public function get(Request $request, $id)
+    public function get_by_id(Request $request, $id)
     {
         $login_data=$request['fm__login_data'];
         $req=$request->all();
@@ -142,7 +144,8 @@ class UserController extends Controller
         ]);
     }
 
-    public function delete(Request $request, $id)
+    //DELETE
+    public function delete_by_id(Request $request, $id)
     {
         $login_data=$request['fm__login_data'];
         $req=$request->all();
@@ -175,7 +178,8 @@ class UserController extends Controller
         ]);
     }
 
-    public function update(Request $request, $id)
+    //UPDATE
+    public function update_by_id(Request $request, $id)
     {
         $login_data=$request['fm__login_data'];
         $req=$request->all();

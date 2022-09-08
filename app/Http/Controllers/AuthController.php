@@ -237,7 +237,8 @@ class AuthController extends Controller
         ]);
     }
 
-    public function delete_token(Request $request, $id)
+    //DELETE
+    public function delete_token_by_id(Request $request, $id)
     {
         $login_data=$request['fm__login_data'];
         $req=$request->all();
@@ -268,7 +269,19 @@ class AuthController extends Controller
         ]);
     }
 
-    public function delete_token_expired(Request $request)
+    public function delete_token(Request $request)
+    {
+        switch($request->get("type")){
+            //hapus token expired
+            case "expired":
+                return $this->delete_token_expired($request);
+            break;
+            
+            
+        }
+    }
+
+    private function delete_token_expired(Request $request)
     {
         $login_data=$request['fm__login_data'];
         $req=$request->all();
