@@ -7,54 +7,239 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Relations\MorphTo;
-use App\Jobs\SendEmailJob;
+use App\Models\KapalModel;
 use App\Models\UserModel;
-use App\Models\ProyekModel;
-use App\Models\ProyekPekerjaanModel;
-use App\Models\ProyekBiayaModel;
-use App\Models\TenderModel;
-use App\Models\TenderPekerjaanModel;
-use App\Models\TenderPekerjaanRencanaModel;
-use App\Models\ProyekTenderModel;
-use App\Models\ProyekTenderPekerjaanModel;
-use App\Models\ProyekTenderPekerjaanRencanaModel;
-use App\Models\ProyekTenderPekerjaanRealisasiModel;
 
 class HomeController extends Controller
 {
-    public function index(Request $request)
+
+    public function gets_vessel(Request $request)
     {
         $login_data=$request['fm__login_data'];
         $req=$request->all();
 
-        //SUCCESS
-        //--------------------------------------------------------------------------------
-        //query
-        $proyek=ProyekModel::
-            withWhereHas("proyek_tender", function($query)use($login_data){
-                //shipyard
-                if($login_data['role']=="shipyard"){
-                    $query->where("id_user", $login_data['id_user']);
-                }
-            })
-            ->with("proyek_tender.pekerjaan", "proyek_tender.pekerjaan.realisasi")
-            ->orderByDesc("id_proyek")
-            ->get()->toArray();
-        
-        $proyek=convert_object_to_array($proyek);
-        //end query
-        //---------------------------------------------------------------------------------
-        
-        $data=[];
-        foreach($proyek as $val){
-            $data[]=array_merge_without($val, ['proyek_tender'], [
-                'progress'  =>get_progress_realisasi($val['proyek_tender']['pekerjaan'])
-            ]);
+        //ROLE AUTHENTICATION
+        if(!in_array($login_data['role'], ['admin', 'shipowner', 'shipmanager'])){
+            return response()->json([
+                'error' =>"ACCESS_NOT_ALLOWED"
+            ], 403);
         }
 
+        //SUCCESS
+        $kapal=KapalModel::with("owner");
+        //shipowner
+        if($login_data['role']=="shipowner"){
+            $kapal=$kapal->where("id_user", $login_data['id_user']);
+        }
+        //get data
+        $kapal=$kapal->orderByDesc("id_kapal")
+            ->get()->toArray();
+
         return response()->json([
-            'data'  =>$data
+            'data'  =>$kapal
+        ]);
+    }
+
+    public function get_vessel(Request $request, $id)
+    {
+        $login_data=$request['fm__login_data'];
+        $req=$request->all();
+
+        //ROLE AUTHENTICATION
+        if(!in_array($login_data['role'], ['admin', 'shipowner', 'shipmanager'])){
+            return response()->json([
+                'error' =>"ACCESS_NOT_ALLOWED"
+            ], 403);
+        }
+
+        //VALIDATION
+        $req['id_kapal']=$id;
+        $validation=Validator::make($req, [
+            'id_kapal'  =>"required|exists:App\Models\KapalModel,id_kapal"
+        ]);
+        if($validation->fails()){
+            return response()->json([
+                'error' =>"VALIDATION_ERROR",
+                'data'  =>$validation->errors()
+            ], 500);
+        }
+
+        //SUCCESS
+        $kapal=KapalModel::with("owner")
+            ->where("id_kapal", $req['id_kapal'])
+            ->orderByDesc("id_kapal")
+            ->first()->toArray();
+
+        return response()->json([
+            'data'  =>$kapal
+        ]);
+    }
+
+    public function add_vessel(Request $request)
+    {
+        $login_data=$request['fm__login_data'];
+        $req=$request->all();
+
+        //ROLE AUTHENTICATION
+        if(!in_array($login_data['role'], ['admin', 'shipowner', 'shipmanager'])){
+            return response()->json([
+                'error' =>"ACCESS_NOT_ALLOWED"
+            ], 403);
+        }
+
+        //VALIDATION
+        $validation=Validator::make($req, [
+            'id_user'   =>[
+                'required',
+                Rule::exists("App\Models\UserModel")->where(function($query){
+                    return $query->where("role", "shipowner");
+                })
+            ],
+            'nama_kapal'=>"required",
+            'foto'      =>[
+                'required',
+                'ends_with:.jpg,.png,.jpeg',
+                function($attr, $value, $fail)use($req){
+                    if(is_image_file($req['foto'])){
+                        return true;
+                    }
+                    return $fail($attr." image not found");
+                }
+            ],
+            'nama_perusahaan'   =>"required",
+            'merk_perusahaan'   =>"required",
+            'alamat_perusahaan_1'   =>[Rule::requiredIf(!isset($req['alamat_perusahaan_1']))],
+            'alamat_perusahaan_2'   =>[Rule::requiredIf(!isset($req['alamat_perusahaan_2']))],
+            'telepon'   =>"required",
+            'faximile'  =>"required",
+            'npwp'      =>"required",
+            'email'     =>"required|email"
+        ]);
+        if($validation->fails()){
+            return response()->json([
+                'error' =>"VALIDATION_ERROR",
+                'data'  =>$validation->errors()
+            ], 500);
+        }
+
+        //SUCCESS
+        DB::transaction(function() use($req, $login_data){
+            KapalModel::create([
+                'id_user'   =>$req['id_user'],
+                'nama_kapal'=>$req['nama_kapal'],
+                'foto'      =>$req['foto'],
+                'nama_perusahaan'   =>$req['nama_perusahaan'],
+                'merk_perusahaan'   =>$req['merk_perusahaan'],
+                'alamat_perusahaan_1'   =>$req['alamat_perusahaan_1'],
+                'alamat_perusahaan_2'   =>$req['alamat_perusahaan_2'],
+                'telepon'   =>$req['telepon'],
+                'faximile'  =>$req['faximile'],
+                'npwp'      =>$req['npwp'],
+                'email'     =>$req['email']
+            ]);
+        });
+
+        return response()->json([
+            'status'=>"ok"
+        ]);
+    }
+
+    public function delete_vessel(Request $request, $id)
+    {
+        $login_data=$request['fm__login_data'];
+        $req=$request->all();
+
+        //ROLE AUTHENTICATION
+        if(!in_array($login_data['role'], ['admin', 'shipowner', 'shipmanager'])){
+            return response()->json([
+                'error' =>"ACCESS_NOT_ALLOWED"
+            ], 403);
+        }
+
+        //VALIDATION
+        $req['id_kapal']=$id;
+        $validation=Validator::make($req, [
+            'id_kapal'  =>"required|exists:App\Models\KapalModel,id_kapal"
+        ]);
+        if($validation->fails()){
+            return response()->json([
+                'error' =>"VALIDATION_ERROR",
+                'data'  =>$validation->errors()
+            ], 500);
+        }
+
+        //SUCCESS
+        DB::transaction(function() use($req, $login_data){
+            KapalModel::where("id_kapal", $req['id_kapal'])->delete();
+        });
+
+        return response()->json([
+            'status'=>"ok"
+        ]);
+    }
+
+    public function update_vessel(Request $request, $id)
+    {
+        $login_data=$request['fm__login_data'];
+        $req=$request->all();
+
+        //ROLE AUTHENTICATION
+        if(!in_array($login_data['role'], ['admin', 'shipowner', 'shipmanager'])){
+            return response()->json([
+                'error' =>"ACCESS_NOT_ALLOWED"
+            ], 403);
+        }
+
+        //VALIDATION
+        $req['id_kapal']=$id;
+        $validation=Validator::make($req, [
+            'id_kapal'  =>"required|exists:App\Models\KapalModel,id_kapal",
+            'nama_kapal'=>"required",
+            'foto'      =>[
+                'required',
+                'ends_with:.jpg,.png,.jpeg',
+                function($attr, $value, $fail)use($req){
+                    if(is_image_file($req['foto'])){
+                        return true;
+                    }
+                    return $fail($attr." image not found");
+                }
+            ],
+            'nama_perusahaan'   =>"required",
+            'merk_perusahaan'   =>"required",
+            'alamat_perusahaan_1'   =>[Rule::requiredIf(!isset($req['alamat_perusahaan_1']))],
+            'alamat_perusahaan_2'   =>[Rule::requiredIf(!isset($req['alamat_perusahaan_2']))],
+            'telepon'   =>"required",
+            'faximile'  =>"required",
+            'npwp'      =>"required",
+            'email'     =>"required|email"
+        ]);
+        if($validation->fails()){
+            return response()->json([
+                'error' =>"VALIDATION_ERROR",
+                'data'  =>$validation->errors()
+            ], 500);
+        }
+
+        //SUCCESS
+        DB::transaction(function() use($req, $login_data){
+            KapalModel::where("id_kapal", $req['id_kapal'])
+                ->update([
+                    'nama_kapal'=>$req['nama_kapal'],
+                    'foto'      =>$req['foto'],
+                    'nama_perusahaan'   =>$req['nama_perusahaan'],
+                    'merk_perusahaan'   =>$req['merk_perusahaan'],
+                    'alamat_perusahaan_1'   =>$req['alamat_perusahaan_1'],
+                    'alamat_perusahaan_2'   =>$req['alamat_perusahaan_2'],
+                    'telepon'   =>$req['telepon'],
+                    'faximile'  =>$req['faximile'],
+                    'npwp'      =>$req['npwp'],
+                    'email'     =>$req['email']
+                ]);
+        });
+
+        return response()->json([
+            'status'=>"ok"
         ]);
     }
 }

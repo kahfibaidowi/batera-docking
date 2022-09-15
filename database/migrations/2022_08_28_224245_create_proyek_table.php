@@ -15,22 +15,46 @@ return new class extends Migration
     {
         Schema::create("tbl_proyek", function (Blueprint $table) {
             $table->id("id_proyek");
-            $table->unsignedBigInteger("id_user")->comment("pemilik kapal/owner");
-            $table->text("vessel");
+            $table->unsignedBigInteger("id_kapal")->comment("referensi kapal");
             $table->unsignedInteger("tahun");
-            $table->text("foto");
-            $table->text("currency");
-            $table->text("prioritas")->default("hight");
+            $table->date("proyek_start");
+            $table->date("proyek_end");
+            $table->unsignedInteger("proyek_period");
+            $table->text("status");
+            $table->text("tipe_proyek");
+            $table->text("perusahaan_penanggung_jawab");
+            $table->double("estimasi_biaya");
+            $table->text("master_plan");
             $table->text("negara");
-            $table->text("deskripsi");
-            $table->text("status")->default("draft");
-            $table->text("tender_status")->default("pending");
+            $table->text("prioritas");
+            $table->text("nama_proyek");
+            $table->text("mata_uang");
+            $table->date("off_hire_start");
+            $table->date("off_hire_end");
+            $table->unsignedInteger("off_hire_period");
+            $table->unsignedInteger("off_hire_deviasi");
+            $table->double("off_hire_rate_per_day");
+            $table->double("off_hire_bunker_per_day");
+            $table->date("repair_start");
+            $table->date("repair_end");
+            $table->unsignedInteger("repair_period");
+            $table->date("repair_in_dock_start");
+            $table->date("repair_in_dock_end");
+            $table->unsignedInteger("repair_in_dock_period");
+            $table->unsignedInteger("repair_additional_day");
+            $table->double("owner_supplies");
+            $table->double("owner_services");
+            $table->double("owner_class");
+            $table->double("owner_other");
+            $table->double("owner_cancel_job");
+            $table->double("yard_cost");
+            $table->double("yard_cancel_job");
             $table->timestamps();
 
             //fk
-            $table->foreign("id_user")
-                ->references("id_user")
-                ->on("tbl_users")
+            $table->foreign("id_kapal")
+                ->references("id_kapal")
+                ->on("tbl_kapal")
                 ->onDelete("cascade");
         });
     }

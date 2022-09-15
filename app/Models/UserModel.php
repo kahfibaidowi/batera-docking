@@ -9,7 +9,17 @@ class UserModel extends Model{
 
     protected $table="tbl_users";
     protected $primaryKey="id_user";
-    protected $fillable=['username', 'nama_lengkap', 'jabatan', 'no_hp', 'email', 'password', 'avatar_url', 'role', 'status'];
+    protected $fillable=[
+        'username', 
+        'nama_lengkap', 
+        'jabatan', 
+        'no_hp', 
+        'email', 
+        'password', 
+        'avatar_url', 
+        'role', 
+        'status'
+    ];
     protected $hidden=['password'];
 
 

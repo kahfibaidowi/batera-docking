@@ -9,7 +9,42 @@ class ProyekModel extends Model{
 
     protected $table="tbl_proyek";
     protected $primaryKey="id_proyek";
-    protected $fillable=['id_user', 'vessel', 'tahun', 'foto', 'currency', 'prioritas', 'negara', 'deskripsi', 'status', 'tender_status'];
+    protected $fillable=[
+        'id_kapal',
+        'tahun',
+        'proyek_start',
+        'proyek_end',
+        'proyek_period',
+        "status",
+        "tipe_proyek",
+        "perusahaan_penanggung_jawab",
+        "estimasi_biaya",
+        "master_plan",
+        "negara",
+        "prioritas",
+        "nama_proyek",
+        "mata_uang",
+        "off_hire_start",
+        "off_hire_end",
+        "off_hire_period",
+        "off_hire_deviasi",
+        "off_hire_rate_per_day",
+        "off_hire_bunker_per_day",
+        "repair_start",
+        "repair_end",
+        "repair_period",
+        "repair_in_dock_start",
+        "repair_in_dock_end",
+        "repair_in_dock_period",
+        "repair_additional_day",
+        "owner_supplies",
+        "owner_services",
+        "owner_class",
+        "owner_other",
+        "owner_cancel_job",
+        "yard_cost",
+        "yard_cancel_job",
+    ];
     protected $hidden=[];
 
 
@@ -17,23 +52,7 @@ class ProyekModel extends Model{
      *#FUNCTION
      *
      */
-    public function owner(){
-        return $this->belongsTo(UserModel::class, "id_user");
-    }
-
-    public function tender(){
-        return $this->hasMany(TenderModel::class, "id_proyek");
-    }
-
-    public function biaya(){
-        return $this->hasOne(ProyekBiayaModel::class, "id_proyek");
-    }
-
-    public function proyek_tender(){
-        return $this->hasOne(ProyekTenderModel::class, "id_proyek");
-    }
-
-    public function pekerjaan(){
-        return $this->hasMany(ProyekPekerjaanModel::class, "id_proyek")->orderBy("id_proyek_pekerjaan");
+    public function kapal(){
+        return $this->belongsTo(KapalModel::class, "id_kapal");
     }
 }

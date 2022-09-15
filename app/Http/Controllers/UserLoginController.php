@@ -5,19 +5,11 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
-// use App\Repository\UserLoginRepository;
 use App\Models\UserLoginModel;
 use App\Models\UserModel;
 
 class UserLoginController extends Controller
 {
-
-    // protected $user_login;
-
-    // public function __construct(UserLoginRepository $user_login)
-    // {
-    //     $this->user_login=$user_login;
-    // }
 
     public function gets(Request $request)
     {

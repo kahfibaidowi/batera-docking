@@ -9,7 +9,13 @@ class UserLoginModel extends Model{
 
     protected $table="tbl_users_login";
     protected $primaryKey="id_user_login";
-    protected $fillable=['id_user', 'login_token', 'expired', 'last_online', 'device_info'];
+    protected $fillable=[
+        'id_user', 
+        'login_token', 
+        'expired', 
+        'last_online', 
+        'device_info'
+    ];
     protected $hidden=['login_token'];
 
     protected $appends=['expired'];
