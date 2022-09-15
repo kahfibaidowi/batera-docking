@@ -44,6 +44,7 @@ class ProyekModel extends Model{
         "owner_cancel_job",
         "yard_cost",
         "yard_cancel_job",
+        "deskripsi"
     ];
     protected $hidden=[];
 

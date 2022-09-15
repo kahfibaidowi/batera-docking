@@ -49,6 +49,7 @@ return new class extends Migration
             $table->double("owner_cancel_job");
             $table->double("yard_cost");
             $table->double("yard_cancel_job");
+            $table->text("deskripsi");
             $table->timestamps();
 
             //fk

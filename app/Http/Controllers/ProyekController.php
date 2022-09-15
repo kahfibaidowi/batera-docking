@@ -53,7 +53,8 @@ class ProyekController extends Controller
             'owner_other'       =>"required|numeric|min:0",
             'owner_cancel_job'  =>"required|numeric|min:0",
             'yard_cost'         =>"required|numeric|min:0",
-            'yard_cancel_job'   =>"required|numeric|min:0"
+            'yard_cancel_job'   =>"required|numeric|min:0",
+            'deskripsi'         =>[Rule::requiredIf(!isset($req['deskripsi']))]
         ]);
         if($validation->fails()){
             return response()->json([
@@ -155,7 +156,8 @@ class ProyekController extends Controller
             'owner_other'       =>"required|numeric|min:0",
             'owner_cancel_job'  =>"required|numeric|min:0",
             'yard_cost'         =>"required|numeric|min:0",
-            'yard_cancel_job'   =>"required|numeric|min:0"
+            'yard_cancel_job'   =>"required|numeric|min:0",
+            'deskripsi'         =>[Rule::requiredIf(!isset($req['deskripsi']))]
         ]);
         if($validation->fails()){
             return response()->json([
