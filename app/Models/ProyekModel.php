@@ -44,8 +44,14 @@ class ProyekModel extends Model{
         "owner_cancel_job",
         "yard_cost",
         "yard_cancel_job",
-        "deskripsi"
+        "deskripsi",
+        "work_area"
     ];
+
+    protected $casts = [
+        'work_area' =>'array'
+    ];
+
     protected $hidden=[];
 
 

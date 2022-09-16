@@ -1,7 +1,8 @@
 <?php
 
 use Illuminate\Support\Facades\DB;
-
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 
 
 function null_to_empty($var)
@@ -21,7 +22,7 @@ function addKeyInArrayColumn($array, $key, $value)
 }
 function is_image_file($string)
 {
-    $upload_path=storage_path(env("UPLOAD_PATH"));
+    $upload_path=app()->basePath(env("UPLOAD_PATH"));
     
     if(trim($string)==""){
         return false;
@@ -155,4 +156,146 @@ function array_without($array, $without)
     }
 
     return $new_array;
+}
+
+
+
+/*-----------------------------------------------------------------------
+ * PROYEK
+ *-----------------------------------------------------------------------
+ */
+function validation_proyek_work_area($work_area){
+    //error data
+    $error=[];
+    $error_status=false;
+
+    //function
+    function recursive_dropdown($item, &$err_status, $nest){
+        $error=[];
+
+        //max 4 nested
+        if($nest>4){
+            $err_status=true;
+            return ['items'=>['max 4 nested']];
+        }
+
+        //validation
+        $validation=Validator::make($item, [
+            'sfi'       =>"required",
+            'pekerjaan' =>"required",
+            'type'      =>"required|in:kategori,pekerjaan",
+            'items'     =>[
+                Rule::requiredIf(function()use($item){
+                    if(!isset($item['type'])) return true;
+                    if($item['type']=="kategori") return true;
+                }),
+                'array'
+            ],
+            'start'     =>[
+                Rule::requiredIf(function()use($item){
+                    if(!isset($item['type'])) return true;
+                    if($item['type']=="pekerjaan") return true;
+                }),
+                'date_format:Y-m-d'
+            ],
+            'end'       =>[
+                Rule::requiredIf(function()use($item){
+                    if(!isset($item['type'])) return true;
+                    if($item['type']=="pekerjaan") return true;
+                }),
+                'date_format:Y-m-d',
+                'after_or_equal:start'
+            ],
+            'departement'=>[
+                Rule::requiredIf(function()use($item){
+                    if(!isset($item['type'])) return true;
+                    if($item['type']=="pekerjaan") return true;
+                }),
+                function($attr, $value, $fail)use($item){
+                    if($value=="CM"&&$item['responsible']=="shipowner"){
+                        return $fail("if resp shipowner, dept must MD");
+                    }
+                    if($value=="MD"&&$item['responsible']=="shipyard"){
+                        return $fail("if resp shipyard, dept must CM");
+                    }
+                    return true;
+                },
+                'in:CM,MD'
+            ],
+            'responsible'=>[
+                Rule::requiredIf(function()use($item){
+                    if(!isset($item['type'])) return true;
+                    if($item['type']=="pekerjaan") return true;
+                }),
+                'in:shipowner,shipyard'
+            ],
+            'kontrak'   =>[
+                Rule::requiredIf(function()use($item){
+                    if(!isset($item['type'])) return true;
+                    if($item['type']=="pekerjaan") return true;
+                }),
+                'numeric',
+                'min:0'
+            ],
+            'additional'=>[
+                Rule::requiredIf(function()use($item){
+                    if(!isset($item['type'])) return true;
+                    if($item['type']=="pekerjaan") return true;
+                }),
+                'numeric',
+                'min:0'
+            ]
+        ]);
+        if($validation->fails()){
+            $err_status=true;
+            return $validation->errors();
+        }
+
+        //next
+        if($item['type']=="kategori"){
+            foreach($item['items'] as $work){
+                $error[]=recursive_dropdown($work, $err_status, $nest+1);
+            }
+        }
+
+        return $error;
+    }
+
+    //code
+    foreach($work_area as $work){
+        $error[]=recursive_dropdown($work, $error_status, 0);
+    }
+
+    //execute
+    return [
+        'error' =>$error_status,
+        'data'  =>$error
+    ];
+}
+function get_owner_cost($work_area){
+    //function recursive
+    function owner_cost_recursive($work){
+        $cost=0;
+
+        if($work['type']=="pekerjaan"){
+            if($work['responsible']=="shipowner"){
+                $cost+=$work['kontrak']+$work['additional'];
+            }
+        }
+        if($work['type']=="kategori"){
+            foreach($work['items'] as $item){
+                $cost+=owner_cost_recursive($item);
+            }
+        }
+
+        return $cost;
+    }
+
+    //script
+    $owner_cost=0;
+    foreach($work_area as $work){
+        $owner_cost+=owner_cost_recursive($work);
+    }
+
+    return $owner_cost;
 }

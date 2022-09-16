@@ -54,12 +54,28 @@ class ProyekController extends Controller
             'owner_cancel_job'  =>"required|numeric|min:0",
             'yard_cost'         =>"required|numeric|min:0",
             'yard_cancel_job'   =>"required|numeric|min:0",
-            'deskripsi'         =>[Rule::requiredIf(!isset($req['deskripsi']))]
+            'deskripsi'         =>[Rule::requiredIf(!isset($req['deskripsi']))],
+            'work_area'         =>[
+                Rule::requiredIf(function()use($req){
+                    if(!isset($req['work_area'])) return true;
+                    if(!is_array($req['work_area'])) return true;
+                }),
+                'array',
+                'min:0'
+            ]
         ]);
         if($validation->fails()){
             return response()->json([
                 'error' =>"VALIDATION_ERROR",
                 'data'  =>$validation->errors()
+            ], 500);
+        }
+
+        //VALIDATION DETAIL FOR WORK AREA
+        $validate_work_area=validation_proyek_work_area($req['work_area']);
+        if($validate_work_area['error']){
+            return response()->json([
+                'data'  =>$validate_work_area['data']
             ], 500);
         }
 
@@ -104,7 +120,9 @@ class ProyekController extends Controller
                 'owner_other'       =>$req['owner_other'],
                 'owner_cancel_job'  =>$req['owner_cancel_job'],
                 'yard_cost'         =>$req['yard_cost'],
-                'yard_cancel_job'   =>$req['yard_cancel_job']
+                'yard_cancel_job'   =>$req['yard_cancel_job'],
+                'deskripsi'         =>$req['deskripsi'],
+                'work_area'         =>json_encode($req['work_area'])
             ]);
         });
 
@@ -157,12 +175,28 @@ class ProyekController extends Controller
             'owner_cancel_job'  =>"required|numeric|min:0",
             'yard_cost'         =>"required|numeric|min:0",
             'yard_cancel_job'   =>"required|numeric|min:0",
-            'deskripsi'         =>[Rule::requiredIf(!isset($req['deskripsi']))]
+            'deskripsi'         =>[Rule::requiredIf(!isset($req['deskripsi']))],
+            'work_area'         =>[
+                Rule::requiredIf(function()use($req){
+                    if(!isset($req['work_area'])) return true;
+                    if(!is_array($req['work_area'])) return true;
+                }),
+                'array',
+                'min:0'
+            ]
         ]);
         if($validation->fails()){
             return response()->json([
                 'error' =>"VALIDATION_ERROR",
                 'data'  =>$validation->errors()
+            ], 500);
+        }
+        
+        //VALIDATION DETAIL FOR WORK AREA
+        $validate_work_area=validation_proyek_work_area($req['work_area']);
+        if($validate_work_area['error']){
+            return response()->json([
+                'data'  =>$validate_work_area['data']
             ], 500);
         }
 
@@ -206,7 +240,9 @@ class ProyekController extends Controller
                     'owner_other'       =>$req['owner_other'],
                     'owner_cancel_job'  =>$req['owner_cancel_job'],
                     'yard_cost'         =>$req['yard_cost'],
-                    'yard_cancel_job'   =>$req['yard_cancel_job']
+                    'yard_cancel_job'   =>$req['yard_cancel_job'],
+                    'deskripsi'         =>$req['deskripsi'],
+                    'work_area'         =>json_encode($req['work_area'])
                 ]);
         });
 

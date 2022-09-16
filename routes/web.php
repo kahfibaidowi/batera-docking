@@ -201,6 +201,38 @@ $router->get("/proyek/{id}", [
     ]
 ]);
 
+//TENDER
+$router->post("/tender", [
+    'uses'=>"TenderController@add_tender",
+    'middleware'=>[
+        'auth'
+    ]
+]);
+$router->put("/tender/{id}", [
+    'uses'=>"TenderController@update_tender",
+    'middleware'=>[
+        'auth'
+    ]
+]);
+$router->delete("/tender/{id}", [
+    'uses'=>"TenderController@delete_tender",
+    'middleware'=>[
+        'auth'
+    ]
+]);
+$router->get("/tender/proyek/{id}", [
+    'uses'=>"TenderController@gets_tender_proyek",
+    'middleware'=>[
+        'auth'
+    ]
+]);
+$router->get("/tender/{id}", [
+    'uses'=>"TenderController@get_tender",
+    'middleware'=>[
+        'auth'
+    ]
+]);
+
 // //PROYEK
 // $router->post("/proyek", [
 //     'uses'=>"ProyekController@add",

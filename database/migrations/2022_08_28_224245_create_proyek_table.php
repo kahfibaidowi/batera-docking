@@ -50,6 +50,7 @@ return new class extends Migration
             $table->double("yard_cost");
             $table->double("yard_cancel_job");
             $table->text("deskripsi");
+            $table->text("work_area")->default("[]")->comment("list pekerjaan/work area, data berbentuk json");
             $table->timestamps();
 
             //fk
