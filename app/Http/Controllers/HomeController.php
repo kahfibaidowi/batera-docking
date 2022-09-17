@@ -189,6 +189,7 @@ class HomeController extends Controller
         //SUCCESS
         DB::transaction(function() use($req, $login_data){
             //kapal
+            $kapal=KapalModel::where("id_kapal", $req['id_kapal'])->first();
             KapalModel::where("id_kapal", $req['id_kapal'])->delete();
 
             //user shipowner
