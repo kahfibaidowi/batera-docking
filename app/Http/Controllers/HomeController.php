@@ -99,7 +99,7 @@ class HomeController extends Controller
                     $v=UserShipownerModel::where("id_user", $value);
                     if($v->count()>0){
                         $vr=$v->first();
-                        if($vr['kapal_tersisa']==0){
+                        if($vr['kapal_tersisa']<=0){
                             return $fail("limit kapal runs out");
                         }
                     }
