@@ -31,7 +31,15 @@ class TenderController extends Controller
                 "required",
                 Rule::exists("App\Models\UserModel")->where(function($query){
                     $query->where("role", "shipyard");
-                })
+                }),
+                function($attr, $value, $fail)use($req){
+                    $v=TenderModel::where("id_proyek", $req['id_proyek'])
+                        ->where("id_user", $value);
+                    if($v->count()>0){
+                        return $fail("multiple input tender not allowed in one project");
+                    }
+                    return true;
+                }
             ],
             'yard_total_quote'  =>"required|numeric|min:0",
             'general_diskon_persen' =>"required|numeric|between:0,100",
@@ -146,6 +154,11 @@ class TenderController extends Controller
         $req=$request->all();
 
         //ROLE AUTHENTICATION
+        if(!in_array($login_data['role'], ['admin', 'shipyard', 'shipmanager', 'shipowner'])){
+            return response()->json([
+                'error' =>"ACCESS_NOT_ALLOWED"
+            ], 403);
+        }
 
         //VALIDATION
         $req['id_proyek']=$id;
@@ -197,6 +210,11 @@ class TenderController extends Controller
         $req=$request->all();
 
         //ROLE AUTHENTICATION
+        if(!in_array($login_data['role'], ['admin', 'shipyard', 'shipmanager', 'shipowner'])){
+            return response()->json([
+                'error' =>"ACCESS_NOT_ALLOWED"
+            ], 403);
+        }
 
         //VALIDATION
         $req['id_tender']=$id;

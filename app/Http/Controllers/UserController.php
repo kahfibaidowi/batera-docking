@@ -33,7 +33,7 @@ class UserController extends Controller
             'password'      =>"required|min:5",
             'role'          =>[
                 'required',
-                Rule::in(["admin", "shipmanager", "shipyard", "shipowner"])
+                Rule::in(["admin", "shipmanager", "shipyard", "shipowner", "provider"])
             ]
         ]);
         if($validation->fails()){
@@ -75,7 +75,7 @@ class UserController extends Controller
             ],
             'role'      =>[
                 'required',
-                Rule::in(['all', 'admin', 'shipyard', 'shipmanager', 'shipowner']),
+                Rule::in(['all', 'admin', 'shipyard', 'shipmanager', 'shipowner', 'provider']),
             ],
             'status'    =>[
                 'required',

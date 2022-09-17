@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Database\Eloquent\Builder;
 use App\Models\KapalModel;
 use App\Models\UserModel;
+use App\Models\UserShipownerModel;
 
 class HomeController extends Controller
 {
@@ -93,7 +94,17 @@ class HomeController extends Controller
                 'required',
                 Rule::exists("App\Models\UserModel")->where(function($query){
                     return $query->where("role", "shipowner");
-                })
+                }),
+                function($attr, $value, $fail){
+                    $v=UserShipownerModel::where("id_user", $value);
+                    if($v->count()>0){
+                        $vr=$v->first();
+                        if($vr['kapal_tersisa']==0){
+                            return $fail("limit kapal runs out");
+                        }
+                    }
+                    return true;
+                }
             ],
             'nama_kapal'=>"required",
             'foto'      =>[
@@ -124,6 +135,7 @@ class HomeController extends Controller
 
         //SUCCESS
         DB::transaction(function() use($req, $login_data){
+            //kapal
             KapalModel::create([
                 'id_user'   =>$req['id_user'],
                 'nama_kapal'=>$req['nama_kapal'],
@@ -137,6 +149,12 @@ class HomeController extends Controller
                 'npwp'      =>$req['npwp'],
                 'email'     =>$req['email']
             ]);
+
+            //user shipowner
+            UserShipownerModel::where("id_user", $req['id_user'])
+                ->update([
+                    'kapal_tersisa' =>DB::raw("kapal_tersisa-1")
+                ]);
         });
 
         return response()->json([
@@ -170,7 +188,14 @@ class HomeController extends Controller
 
         //SUCCESS
         DB::transaction(function() use($req, $login_data){
+            //kapal
             KapalModel::where("id_kapal", $req['id_kapal'])->delete();
+
+            //user shipowner
+            UserShipownerModel::where("id_user", $kapal['id_user'])
+                ->update([
+                    'kapal_tersisa' =>DB::raw("kapal_tersisa+1")
+                ]);
         });
 
         return response()->json([

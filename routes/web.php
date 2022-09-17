@@ -83,6 +83,43 @@ $router->delete("/user_login", [
     ]
 ]);
 
+//USERS SHIPOWNER
+$router->get("/user_shipowner", [
+    'uses'=>"UserShipownerController@gets",
+    'middleware'=>[
+        'auth',
+        'role:admin,provider'
+    ]
+]);
+$router->get("/user_shipowner/{id}", [
+    'uses'  =>"UserShipownerController@get",
+    'middleware'=>[
+        'auth',
+        'role:admin,provider'
+    ]
+]);
+$router->delete("/user_shipowner/{id}", [
+    'uses'  =>"UserShipownerController@delete",
+    'middleware'=>[
+        'auth',
+        'role:admin,provider'
+    ]
+]);
+$router->post("/user_shipowner", [
+    'uses'=>"UserShipownerController@add",
+    'middleware'=>[
+        'auth',
+        'role:admin,provider'
+    ]
+]);
+$router->put("/user_shipowner/{id}", [
+    'uses'  =>"UserShipownerController@update",
+    'middleware'=>[
+        'auth',
+        'role:admin,provider'
+    ]
+]);
+
 //USERS
 $router->get("/user", [
     'uses'  =>"UserController@gets",
