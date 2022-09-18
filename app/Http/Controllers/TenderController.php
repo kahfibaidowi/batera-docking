@@ -29,8 +29,11 @@ class TenderController extends Controller
             'id_proyek'         =>"required|exists:App\Models\ProyekModel,id_proyek",
             'id_user'           =>[
                 "required",
-                Rule::exists("App\Models\UserModel")->where(function($query){
-                    $query->where("role", "shipyard");
+                Rule::exists("App\Models\UserModel")->where(function($query)use($login_data){
+                    if($login_data['role']=="shipyard"){
+                        return $query->where("role", "shipyard")->where("id_user", $login_data['id_user']);
+                    }
+                    return $query->where("role", "shipyard");
                 }),
                 function($attr, $value, $fail)use($req){
                     $v=TenderModel::where("id_proyek", $req['id_proyek'])
@@ -85,7 +88,14 @@ class TenderController extends Controller
         //VALIDATION
         $req['id_tender']=$id;
         $validation=Validator::make($req, [
-            'id_tender'         =>"required|exists:App\Models\TenderModel,id_tender",
+            'id_tender'         =>[
+                "required",
+                Rule::exists("App\Models\TenderModel")->where(function($query)use($login_data){
+                    if($login_data['role']=="shipyard"){
+                        return $query->where("id_user", $login_data['id_user']);
+                    }
+                })
+            ],
             'yard_total_quote'  =>"required|numeric|min:0",
             'general_diskon_persen' =>"required|numeric|between:0,100",
             'additional_diskon' =>"required|numeric|min:0",
@@ -129,7 +139,14 @@ class TenderController extends Controller
         //VALIDATION
         $req['id_tender']=$id;
         $validation=Validator::make($req, [
-            'id_tender'         =>"required|exists:App\Models\TenderModel,id_tender"
+            'id_tender'         =>[
+                "required",
+                Rule::exists("App\Models\TenderModel")->where(function($query)use($login_data){
+                    if($login_data['role']=="shipyard"){
+                        return $query->where("id_user", $login_data['id_user']);
+                    }
+                })
+            ]
         ]);
         if($validation->fails()){
             return response()->json([
