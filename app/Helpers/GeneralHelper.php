@@ -166,11 +166,12 @@ function array_without($array, $without)
  */
 function validation_proyek_work_area($work_area){
     //error data
+    $sfi_list=[];
     $error=[];
     $error_status=false;
 
     //function
-    function recursive_dropdown($item, &$err_status, $nest){
+    function recursive_dropdown($item, &$err_status, $nest, &$id_list){
         $error=[];
 
         //max 4 nested
@@ -181,7 +182,10 @@ function validation_proyek_work_area($work_area){
 
         //validation
         $validation=Validator::make($item, [
-            'sfi'       =>"required",
+            'sfi'       =>[
+                "required",
+                Rule::notIn($id_list)
+            ],
             'pekerjaan' =>"required",
             'type'      =>"required|in:kategori,pekerjaan",
             'items'     =>[
@@ -250,11 +254,14 @@ function validation_proyek_work_area($work_area){
             $err_status=true;
             return $validation->errors();
         }
+        
+        //add sfi for unique
+        $id_list[]=trim($item['sfi']);
 
         //next
         if($item['type']=="kategori"){
             foreach($item['items'] as $work){
-                $error[]=recursive_dropdown($work, $err_status, $nest+1);
+                $error[]=recursive_dropdown($work, $err_status, $nest+1, $id_list);
             }
         }
 
@@ -263,7 +270,7 @@ function validation_proyek_work_area($work_area){
 
     //code
     foreach($work_area as $work){
-        $error[]=recursive_dropdown($work, $error_status, 0);
+        $error[]=recursive_dropdown($work, $error_status, 0, $sfi_list);
     }
 
     //execute
