@@ -25,7 +25,14 @@ class ProyekController extends Controller
 
         //VALIDATION
         $validation=Validator::make($req, [
-            'id_kapal'  =>"required|exists:App\Models\KapalModel,id_kapal",
+            'id_kapal'  =>[
+                "required",
+                Rule::exists("App\Models\KapalModel")->where(function($query)use($login_data){
+                    if($login_data['role']=="shipowner"){
+                        return $query->where("id_user", $login_data['id_user']);
+                    }
+                })
+            ],
             'tahun'     =>"required|integer|digits:4",
             'proyek_start'  =>"required|date_format:Y-m-d",
             'proyek_end'    =>"required|date_format:Y-m-d|after_or_equal:proyek_start",
@@ -146,7 +153,21 @@ class ProyekController extends Controller
         //VALIDATION
         $req['id_proyek']=$id;
         $validation=Validator::make($req, [
-            'id_proyek'  =>"required|exists:App\Models\ProyekModel,id_proyek",
+            'id_proyek'  =>[
+                "required",
+                function($attr, $value, $fail)use($login_data){
+                    $v=ProyekModel::where("id_proyek", $value);
+                    if($login_data['role']=="shipowner"){
+                        $v=$v->whereHas("kapal", function($q)use($login_data){
+                            $q->where("id_user", $login_data['id_user']);
+                        });
+                    }
+                    if($v->count()==0){
+                        return $fail("The selected id proyek is invalid.");
+                    }
+                    return true;
+                }
+            ],
             'tahun'     =>"required|integer|digits:4",
             'proyek_start'  =>"required|date_format:Y-m-d",
             'proyek_end'    =>"required|date_format:Y-m-d|after_or_equal:proyek_start",
@@ -266,7 +287,21 @@ class ProyekController extends Controller
         //VALIDATION
         $req['id_proyek']=$id;
         $validation=Validator::make($req, [
-            'id_proyek'  =>"required|exists:App\Models\ProyekModel,id_proyek",
+            'id_proyek'  =>[
+                "required",
+                function($attr, $value, $fail)use($login_data){
+                    $v=ProyekModel::where("id_proyek", $value);
+                    if($login_data['role']=="shipowner"){
+                        $v=$v->whereHas("kapal", function($q)use($login_data){
+                            $q->where("id_user", $login_data['id_user']);
+                        });
+                    }
+                    if($v->count()==0){
+                        return $fail("The selected id proyek is invalid.");
+                    }
+                    return true;
+                }
+            ],
             'status'    =>"required|in:preparation,in_progress,evaluasi"
         ]);
         if($validation->fails()){
@@ -304,7 +339,21 @@ class ProyekController extends Controller
         //VALIDATION
         $req['id_proyek']=$id;
         $validation=Validator::make($req, [
-            'id_proyek'  =>"required|exists:App\Models\ProyekModel,id_proyek"
+            'id_proyek'  =>[
+                "required",
+                function($attr, $value, $fail)use($login_data){
+                    $v=ProyekModel::where("id_proyek", $value);
+                    if($login_data['role']=="shipowner"){
+                        $v=$v->whereHas("kapal", function($q)use($login_data){
+                            $q->where("id_user", $login_data['id_user']);
+                        });
+                    }
+                    if($v->count()==0){
+                        return $fail("The selected id proyek is invalid.");
+                    }
+                    return true;
+                }
+            ]
         ]);
         if($validation->fails()){
             return response()->json([
@@ -395,7 +444,21 @@ class ProyekController extends Controller
         //VALIDATION
         $req['id_proyek']=$id;
         $validation=Validator::make($req, [
-            'id_proyek'  =>"required|exists:App\Models\ProyekModel,id_proyek"
+            'id_proyek'  =>[
+                "required",
+                function($attr, $value, $fail)use($login_data){
+                    $v=ProyekModel::where("id_proyek", $value);
+                    if($login_data['role']=="shipowner"){
+                        $v=$v->whereHas("kapal", function($q)use($login_data){
+                            $q->where("id_user", $login_data['id_user']);
+                        });
+                    }
+                    if($v->count()==0){
+                        return $fail("The selected id proyek is invalid.");
+                    }
+                    return true;
+                }
+            ]
         ]);
         if($validation->fails()){
             return response()->json([

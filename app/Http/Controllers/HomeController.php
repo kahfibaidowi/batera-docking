@@ -56,7 +56,14 @@ class HomeController extends Controller
         //VALIDATION
         $req['id_kapal']=$id;
         $validation=Validator::make($req, [
-            'id_kapal'  =>"required|exists:App\Models\KapalModel,id_kapal"
+            'id_kapal'  =>[
+                "required",
+                Rule::exists("App\Models\KapalModel")->where(function($query)use($login_data){
+                    if($login_data['role']=="shipowner"){
+                        return $query->where("id_user", $login_data['id_user']);
+                    }
+                })
+            ]
         ]);
         if($validation->fails()){
             return response()->json([
@@ -92,7 +99,10 @@ class HomeController extends Controller
         $validation=Validator::make($req, [
             'id_user'   =>[
                 'required',
-                Rule::exists("App\Models\UserModel")->where(function($query){
+                Rule::exists("App\Models\UserModel")->where(function($query)use($login_data){
+                    if($login_data['role']=="shipowner"){
+                        return $query->where("role", "shipowner")->where("id_user", $login_data['id_user']);
+                    }
                     return $query->where("role", "shipowner");
                 }),
                 function($attr, $value, $fail){
@@ -177,7 +187,14 @@ class HomeController extends Controller
         //VALIDATION
         $req['id_kapal']=$id;
         $validation=Validator::make($req, [
-            'id_kapal'  =>"required|exists:App\Models\KapalModel,id_kapal"
+            'id_kapal'  =>[
+                "required",
+                Rule::exists("App\Models\KapalModel")->where(function($query)use($login_data){
+                    if($login_data['role']=="shipowner"){
+                        return $query->where("id_user", $login_data['id_user']);
+                    }
+                })
+            ]
         ]);
         if($validation->fails()){
             return response()->json([
@@ -219,7 +236,14 @@ class HomeController extends Controller
         //VALIDATION
         $req['id_kapal']=$id;
         $validation=Validator::make($req, [
-            'id_kapal'  =>"required|exists:App\Models\KapalModel,id_kapal",
+            'id_kapal'  =>[
+                "required",
+                Rule::exists("App\Models\KapalModel")->where(function($query)use($login_data){
+                    if($login_data['role']=="shipowner"){
+                        return $query->where("id_user", "!=", $login_data['id_user']);
+                    }
+                })
+            ],
             'nama_kapal'=>"required",
             'foto'      =>[
                 'required',
