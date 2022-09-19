@@ -105,17 +105,7 @@ class AuthController extends Controller
         $login_data=$request['fm__login_data'];
         $req=$request->all();
 
-        $user=UserModel::select([
-                "id_user", 
-                "username", 
-                "nama_lengkap", 
-                "jabatan", 
-                "no_hp", 
-                "email", 
-                "avatar_url", 
-                "role"
-            ])
-            ->where("id_user", $login_data['id_user'])
+        $user=UserModel::where("id_user", $login_data['id_user'])
             ->first();
 
         return response()->json([

@@ -22,6 +22,18 @@ class UserController extends Controller
         $validation=Validator::make($req, [
             'username'      =>"required|unique:App\Models\UserModel,username",
             'nama_lengkap'  =>"required|regex:/^[\pL\s\-]+$/u",
+            'nama_kapal'    =>[
+                Rule::requiredIf(!isset($req['nama_kapal']))
+            ],
+            'title'         =>[
+                Rule::requiredIf(!isset($req['title']))
+            ],
+            'departemen'    =>[
+                Rule::requiredIf(!isset($req['departemen']))
+            ],
+            'user_id'       =>[
+                Rule::requiredIf(!isset($req['user_id']))
+            ],
             'jabatan'       =>[
                 Rule::requiredIf(!isset($req['jabatan']))
             ],
@@ -34,6 +46,9 @@ class UserController extends Controller
             'role'          =>[
                 'required',
                 Rule::in(["admin", "shipmanager", "shipyard", "shipowner", "provider"])
+            ],
+            "avatar_url"    =>[
+                Rule::requiredIf(!isset($req['avatar_url']))
             ]
         ]);
         if($validation->fails()){
@@ -47,11 +62,15 @@ class UserController extends Controller
         UserModel::create([
             'username'      =>$req['username'],
             'nama_lengkap'  =>$req['nama_lengkap'],
+            'nama_kapal'    =>$req['nama_kapal'],
+            'title'         =>$req['title'],
+            'departemen'    =>$req['departemen'],
+            'user_id'       =>$req['user_id'],
             'jabatan'       =>$req['jabatan'],
             'no_hp'         =>$req['no_hp'],
             'email'         =>$req['email'],
             'password'      =>Hash::make($req['password']),
-            'avatar_url'    =>"",
+            'avatar_url'    =>$req['avatar_url'],
             'role'          =>$req['role'],
             'status'        =>"active"
         ]);
@@ -195,6 +214,18 @@ class UserController extends Controller
                 })
             ],
             'nama_lengkap'  =>"required|regex:/^[\pL\s\-]+$/u",
+            'nama_kapal'    =>[
+                Rule::requiredIf(!isset($req['nama_kapal']))
+            ],
+            'title'         =>[
+                Rule::requiredIf(!isset($req['title']))
+            ],
+            'departemen'    =>[
+                Rule::requiredIf(!isset($req['departemen']))
+            ],
+            'user_id'       =>[
+                Rule::requiredIf(!isset($req['user_id']))
+            ],
             'jabatan'       =>[
                 Rule::requiredIf(!isset($req['jabatan']))
             ],
@@ -215,6 +246,9 @@ class UserController extends Controller
             'status'        =>[
                 'required',
                 Rule::in(["active", "suspend"])
+            ],
+            "avatar_url"    =>[
+                Rule::requiredIf(!isset($req['avatar_url']))
             ]
         ]);
         if($validation->fails()){
@@ -228,10 +262,15 @@ class UserController extends Controller
         $data_update=[
             'username'  =>$req['username'],
             'nama_lengkap'  =>$req['nama_lengkap'],
+            'nama_kapal'    =>$req['nama_kapal'],
+            'title'         =>$req['title'],
+            'departemen'    =>$req['departemen'],
+            'user_id'       =>$req['user_id'],
             'jabatan'       =>$req['jabatan'],
             'no_hp'         =>$req['no_hp'],
             'email'         =>$req['email'],
-            'status'        =>$req['status']
+            'status'        =>$req['status'],
+            'avatar_url'    =>$req['avatar_url']
         ];
         if($req['password']!=""){
             $data_update=array_merge($data_update, [

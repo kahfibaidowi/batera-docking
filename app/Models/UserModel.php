@@ -12,6 +12,10 @@ class UserModel extends Model{
     protected $fillable=[
         'username', 
         'nama_lengkap', 
+        'nama_kapal',
+        'title',
+        'user_id',
+        'departemen',
         'jabatan', 
         'no_hp', 
         'email', 

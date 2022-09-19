@@ -190,7 +190,7 @@ class TenderController extends Controller
         }
 
         //SUCCESS
-        $tender=TenderModel::with("proyek")
+        $tender=TenderModel::with("proyek", "shipyard")
             ->where("id_proyek", $req['id_proyek'])
             ->orderBy("id_tender")
             ->get()
@@ -204,6 +204,7 @@ class TenderController extends Controller
             $owner_cost=get_owner_cost($val['proyek']['work_area']);
             $owner_total_cost=$offhire_cost+$owner_cost;
             $general_diskon=($val['general_diskon_persen']/100)*$val['yard_total_quote'];
+            $after_diskon=$val['yard_total_quote']-$general_diskon;
 
             $data[]=array_merge($val, [
                 'off_hire_cost' =>$offhire_cost,
@@ -211,6 +212,7 @@ class TenderController extends Controller
                 'owner_total_cost'=>$owner_total_cost,
                 'yard_total_quote'=>$val['yard_total_quote'],
                 'general_diskon'=>$general_diskon,
+                'after_diskon'  =>$after_diskon,
                 'additional_diskon'=>$val['additional_diskon'],
                 'sum_internal_adjusment'=>$val['sum_internal_adjusment']
             ]);
@@ -246,7 +248,7 @@ class TenderController extends Controller
         }
 
         //SUCCESS
-        $tender=TenderModel::with("proyek")
+        $tender=TenderModel::with("proyek", "shipyard")
             ->where("id_tender", $req['id_tender'])
             ->orderBy("id_tender")
             ->first()

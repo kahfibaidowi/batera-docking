@@ -270,6 +270,22 @@ $router->get("/tender/{id}", [
     ]
 ]);
 
+//PENGATURAN
+$router->get("/pengaturan/profile_perusahaan", [
+    'uses'=>"PengaturanController@get_profile_perusahaan",
+    'middleware'=>[
+        'auth',
+        'role:admin'
+    ]
+]);
+$router->put("/pengaturan/profile_perusahaan", [
+    'uses'=>"PengaturanController@update_profile_perusahaan",
+    'middleware'=>[
+        'auth',
+        'role:admin'
+    ]
+]);
+
 // //PROYEK
 // $router->post("/proyek", [
 //     'uses'=>"ProyekController@add",
