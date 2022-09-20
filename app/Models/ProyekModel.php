@@ -12,16 +12,6 @@ class ProyekModel extends Model{
     protected $fillable=[
         'id_kapal',
         'tahun',
-        'proyek_start',
-        'proyek_end',
-        'proyek_period',
-        "status",
-        "tipe_proyek",
-        "perusahaan_penanggung_jawab",
-        "estimasi_biaya",
-        "master_plan",
-        "negara",
-        "prioritas",
         "nama_proyek",
         "mata_uang",
         "off_hire_start",
@@ -44,8 +34,8 @@ class ProyekModel extends Model{
         "owner_cancel_job",
         "yard_cost",
         "yard_cancel_job",
-        "deskripsi",
-        "work_area"
+        "work_area",
+        "status"
     ];
 
     protected $casts = [
@@ -61,5 +51,9 @@ class ProyekModel extends Model{
      */
     public function kapal(){
         return $this->belongsTo(KapalModel::class, "id_kapal");
+    }
+
+    public function report(){
+        return $this->hasOne(ProyekReportModel::class, "id_proyek");
     }
 }

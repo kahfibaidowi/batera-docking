@@ -205,7 +205,11 @@ class AuthController extends Controller
 
         //VALIDATION
         $validation=Validator::make($req, [
-            'per_page' =>"required|numeric|min:1"
+            'per_page'  =>[
+                Rule::requiredIf(!isset($req['per_page'])),
+                'integer',
+                'min:1'
+            ]
         ]);
         if($validation->fails()){
             return response()->json([
@@ -217,7 +221,7 @@ class AuthController extends Controller
         //SUCCESS
         $user_tokens=UserLoginModel::where("id_user", $login_data['id_user'])
             ->orderByDesc("id_user_login")
-            ->paginate($req['per_page'])->toArray();
+            ->paginate(trim($req['per_page']))->toArray();
 
         return response()->json([
             'first_page'    =>1,

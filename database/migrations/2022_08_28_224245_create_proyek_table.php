@@ -17,16 +17,6 @@ return new class extends Migration
             $table->id("id_proyek");
             $table->unsignedBigInteger("id_kapal")->comment("referensi kapal");
             $table->unsignedInteger("tahun");
-            $table->date("proyek_start");
-            $table->date("proyek_end");
-            $table->unsignedInteger("proyek_period");
-            $table->text("status");
-            $table->text("tipe_proyek");
-            $table->text("perusahaan_penanggung_jawab");
-            $table->double("estimasi_biaya");
-            $table->text("master_plan");
-            $table->text("negara");
-            $table->text("prioritas");
             $table->text("nama_proyek");
             $table->text("mata_uang");
             $table->date("off_hire_start");
@@ -49,8 +39,8 @@ return new class extends Migration
             $table->double("owner_cancel_job");
             $table->double("yard_cost");
             $table->double("yard_cancel_job");
-            $table->text("deskripsi");
             $table->text("work_area")->default("[]")->comment("list pekerjaan/work area, data berbentuk json");
+            $table->text("status")->comment("status pembuatan proyek [draft/published]");
             $table->timestamps();
 
             //fk

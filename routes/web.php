@@ -213,8 +213,8 @@ $router->put("/proyek/{id}", [
         'auth'
     ]
 ]);
-$router->put("/proyek/{id}/status", [
-    'uses'=>"ProyekController@update_proyek_status",
+$router->put("/proyek/{id}/publish", [
+    'uses'=>"ProyekController@publish_proyek",
     'middleware'=>[
         'auth'
     ]
@@ -245,8 +245,20 @@ $router->post("/tender", [
         'auth'
     ]
 ]);
+$router->get("/tender", [
+    'uses'=>"TenderController@gets_tender",
+    'middleware'=>[
+        "auth"
+    ]
+]);
 $router->put("/tender/{id}", [
     'uses'=>"TenderController@update_tender",
+    'middleware'=>[
+        'auth'
+    ]
+]);
+$router->put("/tender/{id}/publish", [
+    'uses'=>"TenderController@publish_tender",
     'middleware'=>[
         'auth'
     ]
@@ -267,6 +279,27 @@ $router->get("/tender/{id}", [
     'uses'=>"TenderController@get_tender",
     'middleware'=>[
         'auth'
+    ]
+]);
+$router->post("/tender/{id}/select_tender", [
+    'uses'=>"TenderController@select_tender",
+    'middleware'=>[
+        "auth"
+    ]
+]);
+$router->delete("/tender/{id}/unselect_tender", [
+    'uses'=>"TenderController@unselect_tender",
+    'middleware'=>[
+        "auth"
+    ]
+]);
+
+//REPORT
+//--proyek summary
+$router->put("/report/proyek/{id}", [
+    'uses'=>"ReportController@update_summary",
+    'middleware'=>[
+        "auth"
     ]
 ]);
 

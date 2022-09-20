@@ -34,14 +34,6 @@ class ProyekController extends Controller
                 })
             ],
             'tahun'     =>"required|integer|digits:4",
-            'proyek_start'  =>"required|date_format:Y-m-d",
-            'proyek_end'    =>"required|date_format:Y-m-d|after_or_equal:proyek_start",
-            'tipe_proyek'   =>"required",
-            'perusahaan_penanggung_jawab'   =>"required",
-            'estimasi_biaya'=>"required|numeric|min:0",
-            'master_plan'   =>"required",
-            'negara'        =>"required",
-            'prioritas'     =>"required",
             'nama_proyek'   =>"required",
             'mata_uang'     =>"required",
             'off_hire_start'=>"required|date_format:Y-m-d",
@@ -61,7 +53,6 @@ class ProyekController extends Controller
             'owner_cancel_job'  =>"required|numeric|min:0",
             'yard_cost'         =>"required|numeric|min:0",
             'yard_cancel_job'   =>"required|numeric|min:0",
-            'deskripsi'         =>[Rule::requiredIf(!isset($req['deskripsi']))],
             'work_area'         =>[
                 Rule::requiredIf(function()use($req){
                     if(!isset($req['work_area'])) return true;
@@ -69,7 +60,8 @@ class ProyekController extends Controller
                 }),
                 'array',
                 'min:0'
-            ]
+            ],
+            'status'            =>"required|in:draft,published"
         ]);
         if($validation->fails()){
             return response()->json([
@@ -86,9 +78,11 @@ class ProyekController extends Controller
             ], 500);
         }
 
+        //ADD CREATE_AT AND LAST_UPDATE IN WORK AREA
+        $req['work_area']=add_timestamps_proyek_work_area($req['work_area']);
+
         //SUCCESS
         DB::transaction(function() use($req, $login_data){
-            $proyek_period=count_day($req['proyek_start'], $req['proyek_end']);
             $off_hire_period=count_day($req['off_hire_start'], $req['off_hire_end']);
             $repair_period=count_day($req['repair_start'], $req['repair_end']);
             $repair_in_dock_period=count_day($req['repair_in_dock_start'], $req['repair_in_dock_end']);
@@ -96,16 +90,6 @@ class ProyekController extends Controller
             ProyekModel::create([
                 'id_kapal'  =>$req['id_kapal'],
                 'tahun'     =>$req['tahun'],
-                'proyek_start'  =>$req['proyek_start'],
-                'proyek_end'    =>$req['proyek_end'],
-                'proyek_period' =>$proyek_period,
-                'status'        =>"preparation",
-                'tipe_proyek'   =>$req['tipe_proyek'],
-                'perusahaan_penanggung_jawab'   =>$req['perusahaan_penanggung_jawab'],
-                'estimasi_biaya'=>$req['estimasi_biaya'],
-                'master_plan'   =>$req['master_plan'],
-                'negara'        =>$req['negara'],
-                'prioritas'     =>$req['prioritas'],
                 'nama_proyek'   =>$req['nama_proyek'],
                 'mata_uang'     =>$req['mata_uang'],
                 'off_hire_start'=>$req['off_hire_start'],
@@ -128,8 +112,8 @@ class ProyekController extends Controller
                 'owner_cancel_job'  =>$req['owner_cancel_job'],
                 'yard_cost'         =>$req['yard_cost'],
                 'yard_cancel_job'   =>$req['yard_cancel_job'],
-                'deskripsi'         =>$req['deskripsi'],
-                'work_area'         =>json_encode($req['work_area'])
+                'work_area'         =>$req['work_area'],
+                'status'            =>$req['status']
             ]);
         });
 
@@ -156,7 +140,7 @@ class ProyekController extends Controller
             'id_proyek'  =>[
                 "required",
                 function($attr, $value, $fail)use($login_data){
-                    $v=ProyekModel::where("id_proyek", $value);
+                    $v=ProyekModel::where("id_proyek", $value)->where("status", "draft");
                     if($login_data['role']=="shipowner"){
                         $v=$v->whereHas("kapal", function($q)use($login_data){
                             $q->where("id_user", $login_data['id_user']);
@@ -169,14 +153,6 @@ class ProyekController extends Controller
                 }
             ],
             'tahun'     =>"required|integer|digits:4",
-            'proyek_start'  =>"required|date_format:Y-m-d",
-            'proyek_end'    =>"required|date_format:Y-m-d|after_or_equal:proyek_start",
-            'tipe_proyek'   =>"required",
-            'perusahaan_penanggung_jawab'   =>"required",
-            'estimasi_biaya'=>"required|numeric|min:0",
-            'master_plan'   =>"required",
-            'negara'        =>"required",
-            'prioritas'     =>"required",
             'nama_proyek'   =>"required",
             'mata_uang'     =>"required",
             'off_hire_start'=>"required|date_format:Y-m-d",
@@ -196,7 +172,6 @@ class ProyekController extends Controller
             'owner_cancel_job'  =>"required|numeric|min:0",
             'yard_cost'         =>"required|numeric|min:0",
             'yard_cancel_job'   =>"required|numeric|min:0",
-            'deskripsi'         =>[Rule::requiredIf(!isset($req['deskripsi']))],
             'work_area'         =>[
                 Rule::requiredIf(function()use($req){
                     if(!isset($req['work_area'])) return true;
@@ -204,7 +179,8 @@ class ProyekController extends Controller
                 }),
                 'array',
                 'min:0'
-            ]
+            ],
+            'status'            =>"required|in:draft,published"
         ]);
         if($validation->fails()){
             return response()->json([
@@ -221,9 +197,11 @@ class ProyekController extends Controller
             ], 500);
         }
 
+        //ADD CREATE_AT AND LAST_UPDATE IN WORK AREA
+        $req['work_area']=add_timestamps_proyek_work_area($req['work_area']);
+
         //SUCCESS
         DB::transaction(function() use($req, $login_data){
-            $proyek_period=count_day($req['proyek_start'], $req['proyek_end']);
             $off_hire_period=count_day($req['off_hire_start'], $req['off_hire_end']);
             $repair_period=count_day($req['repair_start'], $req['repair_end']);
             $repair_in_dock_period=count_day($req['repair_in_dock_start'], $req['repair_in_dock_end']);
@@ -231,15 +209,6 @@ class ProyekController extends Controller
             ProyekModel::where("id_proyek", $req['id_proyek'])
                 ->update([
                     'tahun'     =>$req['tahun'],
-                    'proyek_start'  =>$req['proyek_start'],
-                    'proyek_end'    =>$req['proyek_end'],
-                    'proyek_period' =>$proyek_period,
-                    'tipe_proyek'   =>$req['tipe_proyek'],
-                    'perusahaan_penanggung_jawab'   =>$req['perusahaan_penanggung_jawab'],
-                    'estimasi_biaya'=>$req['estimasi_biaya'],
-                    'master_plan'   =>$req['master_plan'],
-                    'negara'        =>$req['negara'],
-                    'prioritas'     =>$req['prioritas'],
                     'nama_proyek'   =>$req['nama_proyek'],
                     'mata_uang'     =>$req['mata_uang'],
                     'off_hire_start'=>$req['off_hire_start'],
@@ -262,8 +231,8 @@ class ProyekController extends Controller
                     'owner_cancel_job'  =>$req['owner_cancel_job'],
                     'yard_cost'         =>$req['yard_cost'],
                     'yard_cancel_job'   =>$req['yard_cancel_job'],
-                    'deskripsi'         =>$req['deskripsi'],
-                    'work_area'         =>json_encode($req['work_area'])
+                    'work_area'         =>json_encode($req['work_area']),
+                    'status'            =>$req['status']
                 ]);
         });
 
@@ -272,7 +241,7 @@ class ProyekController extends Controller
         ]);
     }
 
-    public function update_proyek_status(Request $request, $id)
+    public function publish_proyek(Request $request, $id)
     {
         $login_data=$request['fm__login_data'];
         $req=$request->all();
@@ -290,7 +259,7 @@ class ProyekController extends Controller
             'id_proyek'  =>[
                 "required",
                 function($attr, $value, $fail)use($login_data){
-                    $v=ProyekModel::where("id_proyek", $value);
+                    $v=ProyekModel::where("id_proyek", $value)->where("status", "draft");
                     if($login_data['role']=="shipowner"){
                         $v=$v->whereHas("kapal", function($q)use($login_data){
                             $q->where("id_user", $login_data['id_user']);
@@ -301,8 +270,7 @@ class ProyekController extends Controller
                     }
                     return true;
                 }
-            ],
-            'status'    =>"required|in:preparation,in_progress,evaluasi"
+            ]
         ]);
         if($validation->fails()){
             return response()->json([
@@ -315,7 +283,7 @@ class ProyekController extends Controller
         DB::transaction(function() use($req, $login_data){
             ProyekModel::where("id_proyek", $req['id_proyek'])
                 ->update([
-                    'status'=>$req['status']
+                    'status'=>"published"
                 ]);
         });
 
@@ -403,10 +371,6 @@ class ProyekController extends Controller
         }
 
         //SUCCESS
-        //-- param
-        $per_page=trim($req['per_page'])!=""?$req['per_page']:ProyekModel::count();
-
-        //-- query
         $proyek=ProyekModel::with("kapal", "kapal.owner");
         //q
         $proyek=$proyek->where("nama_proyek", "ilike", "%".$req['q']."%");
@@ -418,7 +382,7 @@ class ProyekController extends Controller
         }
         //get & paginate
         $proyek=$proyek->orderByDesc("id_proyek")
-            ->paginate($per_page)
+            ->paginate(trim($req['per_page']))
             ->toArray();
 
         return response()->json([

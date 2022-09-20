@@ -35,7 +35,7 @@ class FileController extends Controller
         $file_size=$request->file("dokumen")->getSize();
 
         //upload
-        $request->file("dokumen")->move(app()->basePath(env("UPLOAD_PATH")), $file);
+        $request->file("dokumen")->move(storage_path(env("UPLOAD_PATH")), $file);
 
         return response()->json([
             'data'  =>[
@@ -44,5 +44,22 @@ class FileController extends Controller
                 'size'      =>$file_size/1000
             ]
         ]);
+    }
+
+    public function show($file)
+    {
+        $upload_path=storage_path(env("UPLOAD_PATH"));
+
+        if(file_exists($upload_path."/".$file)){
+            $file_info=new \finfo(FILEINFO_MIME_TYPE);
+            $file_show=file_get_contents($upload_path."/".$file);
+
+            return response($file_show, 200)
+                ->header('Content-Type', $file_info->buffer($file_show));
+        }
+
+        return response()->json([
+            'status'=>"NOT_FOUND"
+        ], 404);
     }
 }

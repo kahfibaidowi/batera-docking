@@ -15,7 +15,13 @@ class TenderModel extends Model{
         'yard_total_quote',
         'general_diskon_persen',
         'additional_diskon',
-        'sum_internal_adjusment'
+        'sum_internal_adjusment',
+        'work_area',
+        'status'
+    ];
+    
+    protected $casts = [
+        'work_area' =>'array'
     ];
 
     protected $hidden=[];

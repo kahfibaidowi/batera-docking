@@ -184,7 +184,12 @@ function validation_proyek_work_area($work_area){
         $validation=Validator::make($item, [
             'sfi'       =>[
                 "required",
-                Rule::notIn($id_list)
+                function($attr, $value, $fail)use($id_list){
+                    if(in_array(trim($value), $id_list)){
+                        return $fail("sfi must unique");
+                    }
+                    return true;
+                }
             ],
             'pekerjaan' =>"required",
             'type'      =>"required|in:kategori,pekerjaan",
@@ -233,6 +238,22 @@ function validation_proyek_work_area($work_area){
                 }),
                 'in:shipowner,shipyard'
             ],
+            'volume'    =>[
+                Rule::requiredIf(function()use($item){
+                    if(!isset($item['type'])) return true;
+                    if($item['type']=="pekerjaan") return true;
+                }),
+                'numeric',
+                'min:0'
+            ],
+            'harga_satuan'=>[
+                Rule::requiredIf(function()use($item){
+                    if(!isset($item['type'])) return true;
+                    if($item['type']=="pekerjaan") return true;
+                }),
+                'numeric',
+                'min:0'
+            ],
             'kontrak'   =>[
                 Rule::requiredIf(function()use($item){
                     if(!isset($item['type'])) return true;
@@ -279,6 +300,37 @@ function validation_proyek_work_area($work_area){
         'data'  =>$error
     ];
 }
+function add_timestamps_proyek_work_area($work_area){
+    $created_at=with_timezone(date("Y-m-d H:i:s"));
+    $updated_at=with_timezone(date("Y-m-d H:i:s"));
+
+    //function
+    function recursive_dropdown_timestamps($item, $created, $updated){
+        if($item['type']=="kategori"){
+            $data=[];
+            foreach($item['items'] as $work){
+                $data[]=recursive_dropdown_timestamps($work, $created, $updated);
+            }
+
+            return array_merge($item, [
+                'items' =>$data
+            ]);
+        }
+        elseif($item['type']=="pekerjaan"){
+            return array_merge($item, [
+                'created_at'=>$created,
+                'updated_at'=>$updated
+            ]);
+        }
+    }
+
+    $data=[];
+    foreach($work_area as $work){
+        $data[]=recursive_dropdown_timestamps($work, $created_at, $updated_at);
+    }
+
+    return $data;
+}
 function get_owner_cost($work_area){
     //function recursive
     function owner_cost_recursive($work){
@@ -305,4 +357,53 @@ function get_owner_cost($work_area){
     }
 
     return $owner_cost;
+}
+
+/*-----------------------------------------------------------------------
+ * TENDER
+ *-----------------------------------------------------------------------
+ */
+function add_total_kontrak_tender_work_area($proyek_work_area){
+    //function
+    function recursive_volxharsat_tender($item){
+        $sum=0;
+        if($item['type']=="kategori"){
+            foreach($item['items'] as $work){
+                $sum+=recursive_volxharsat_tender($work);
+            }
+        }
+        elseif($item['type']=="pekerjaan"){
+            $sum+=$item['volume']*$item['harga_satuan'];
+        }
+
+        return $sum;
+    }
+    function recursive_dropdown_tender($item){
+        if($item['type']=="kategori"){
+            $sum=0;
+            $data=[];
+            foreach($item['items'] as $work){
+                $sum+=recursive_volxharsat_tender($work);
+                $data[]=recursive_dropdown_tender($work);
+            }
+
+            return array_merge($item, [
+                'items'         =>$data,
+                'total_kontrak' =>$sum
+            ]);
+        }
+        elseif($item['type']=="pekerjaan"){
+            return array_merge($item, [
+                'total_kontrak' =>$item['volume']*$item['harga_satuan']
+            ]);
+        }
+    }
+
+    //data
+    $data=[];
+    foreach($proyek_work_area as $work){
+        $data[]=recursive_dropdown_tender($work);
+    }
+
+    return $data;
 }

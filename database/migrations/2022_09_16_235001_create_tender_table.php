@@ -21,6 +21,8 @@ return new class extends Migration
             $table->double("general_diskon_persen");
             $table->double("additional_diskon");
             $table->double("sum_internal_adjusment");
+            $table->text("work_area")->default("[]")->comment("list pekerjaan/work area, data berbentuk json");
+            $table->text("status")->comment("status pembuatan tender [draft/published]");
             $table->timestamps();
 
             //fk

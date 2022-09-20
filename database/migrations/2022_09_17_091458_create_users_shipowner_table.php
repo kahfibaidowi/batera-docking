@@ -19,6 +19,7 @@ return new class extends Migration
             $table->unsignedInteger("kapal_tersisa");
             $table->timestamps();
 
+            //fk
             $table->foreign("id_user")
                 ->references("id_user")
                 ->on("tbl_users")

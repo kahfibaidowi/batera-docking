@@ -87,7 +87,11 @@ class UserController extends Controller
         $req=$request->all();
 
         $validation=Validator::make($req, [
-            'per_page'  =>"required|numeric|min:1",
+            'per_page'  =>[
+                Rule::requiredIf(!isset($req['per_page'])),
+                'integer',
+                'min:1'
+            ],
             'q'         =>[
                 'regex:/^[\pL\s\-]+$/u',
                 Rule::requiredIf(!isset($req['q']))
@@ -128,7 +132,7 @@ class UserController extends Controller
 
         //order & paginate
         $users=$users->orderByDesc("id_user")
-            ->paginate($req['per_page'])->toArray();
+            ->paginate(trim($req['per_page']))->toArray();
 
         return response()->json([
             'first_page'    =>1,

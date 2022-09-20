@@ -18,7 +18,11 @@ class UserLoginController extends Controller
 
         //VALIDATION
         $validation=Validator::make($req, [
-            'per_page'  =>"required|numeric|min:1",
+            'per_page'  =>[
+                Rule::requiredIf(!isset($req['per_page'])),
+                'integer',
+                'min:1'
+            ],
             'q'         =>[
                 'regex:/^[\pL\s\-]+$/u',
                 Rule::requiredIf(!isset($req['q']))
@@ -55,7 +59,7 @@ class UserLoginController extends Controller
         //order & paginate
         $users_login=$users_login
             ->orderByDesc("id_user_login")
-            ->paginate($req['per_page'])->toArray();
+            ->paginate(trim($req['per_page']))->toArray();
 
         return response()->json([
             'first_page'    =>1,
