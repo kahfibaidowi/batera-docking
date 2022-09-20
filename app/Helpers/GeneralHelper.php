@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
+use App\Models\PengaturanModel;
 
 
 function null_to_empty($var)
@@ -22,7 +23,7 @@ function addKeyInArrayColumn($array, $key, $value)
 }
 function is_image_file($string)
 {
-    $upload_path=app()->basePath(env("UPLOAD_PATH"));
+    $upload_path=storage_path(env("UPLOAD_PATH"));
     
     if(trim($string)==""){
         return false;
@@ -406,4 +407,43 @@ function add_total_kontrak_tender_work_area($proyek_work_area){
     }
 
     return $data;
+}
+
+/*-----------------------------------------------------------------------
+ * PENGATURAN
+ *-----------------------------------------------------------------------
+ */
+function get_info_perusahaan(){
+    //CHECK PROFILE IN DATABASE
+    $key_name=[
+        "profile_nama_perusahaan",
+        "profile_merk_perusahaan",
+        "profile_alamat_perusahaan_1",
+        "profile_alamat_perusahaan_2",
+        "profile_telepon",
+        "profile_fax",
+        "profile_npwp",
+        "profile_email"
+    ];
+    $profile_perusahaan=PengaturanModel::whereIn("tipe_pengaturan", $key_name);
+    if($profile_perusahaan->count()==0){
+        DB::transaction(function() use($key_name){
+            foreach($key_name as $val){
+                PengaturanModel::create([
+                    "tipe_pengaturan"   =>$val,
+                    "value_pengaturan"  =>""
+                ]);
+            }
+        });
+    }
+    
+    //SUCCESS
+    $profile_perusahaan=PengaturanModel::whereIn("tipe_pengaturan", $key_name)->get();
+
+    $data=[];
+    foreach($profile_perusahaan as $val){
+        $data[$val['tipe_pengaturan']]=$val['value_pengaturan'];
+    }
+
+    return (object)$data;
 }

@@ -302,6 +302,18 @@ $router->put("/report/proyek/{id}", [
         "auth"
     ]
 ]);
+$router->get("/report/proyek", [
+    'uses'=>"ReportController@gets_summary",
+    'middleware'=>[
+        "auth"
+    ]
+]);
+$router->get("/report/proyek/{id}", [
+    'uses'=>"ReportController@get_summary",
+    'middleware'=>[
+        "auth"
+    ]
+]);
 
 //PENGATURAN
 $router->get("/pengaturan/profile_perusahaan", [
