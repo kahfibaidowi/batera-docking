@@ -314,6 +314,37 @@ $router->get("/report/proyek/{id}", [
         "auth"
     ]
 ]);
+//--proyek summary detail
+$router->post("/report/detail", [
+    'uses'=>"ReportController@add_detail",
+    'middleware'=>[
+        "auth"
+    ]
+]);
+$router->put("/report/detail/{id}", [
+    'uses'=>"ReportController@update_detail",
+    'middleware'=>[
+        "auth"
+    ]
+]);
+$router->delete("/report/detail/{id}", [
+    'uses'=>"ReportController@delete_detail",
+    'middleware'=>[
+        "auth"
+    ]
+]);
+$router->get("/report/proyek/{id}/detail", [
+    'uses'=>"ReportController@gets_summary_detail",
+    'middleware'=>[
+        "auth"
+    ]
+]);
+$router->get("/report/detail/{id}", [
+    'uses'=>"ReportController@get_detail",
+    'middleware'=>[
+        "auth"
+    ]
+]);
 
 //PENGATURAN
 $router->get("/pengaturan/profile_perusahaan", [

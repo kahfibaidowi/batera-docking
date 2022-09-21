@@ -40,6 +40,31 @@ function is_image_file($string)
     }
     return false;
 }
+function is_document_file($string)
+{
+    $upload_path=storage_path(env("UPLOAD_PATH"));
+    
+    if(trim($string)==""){
+        return false;
+    }
+    if(file_exists($upload_path."/".$string)){
+        $file_info=new \finfo(FILEINFO_MIME_TYPE);
+        $file_show=file_get_contents($upload_path."/".$string);
+
+        $extensions=[
+            'application/pdf', 
+            'application/msword', 
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'application/vnd.ms-excel',
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        ];
+        if(in_array($file_info->buffer($file_show), $extensions)){
+            return true;
+        }
+        return false;
+    }
+    return false;
+}
 function count_day($start, $end)
 {
     $time_start=strtotime($start);

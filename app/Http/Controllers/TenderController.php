@@ -341,10 +341,10 @@ class TenderController extends Controller
         //SUCCESS
         DB::transaction(function() use($req, $login_data){
             $tender=TenderModel::where("id_tender", $req['id_tender'])->first();
-            $proyek=ProyekModel::where("id_proyek", $req['id_proyek'])->first();
+            $proyek=ProyekModel::where("id_proyek", $tender['id_proyek'])->first();
 
             ProyekReportModel::create([
-                "id_proyek"     =>$req['id_proyek'],
+                "id_proyek"     =>$proyek['id_proyek'],
                 "id_tender"     =>$req['id_tender'],
                 "proyek_start"  =>$proyek['off_hire_start'],
                 "proyek_end"    =>$proyek['off_hire_end'],
