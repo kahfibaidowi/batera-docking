@@ -343,6 +343,7 @@ class TenderController extends Controller
             $tender=TenderModel::where("id_tender", $req['id_tender'])->first();
             $proyek=ProyekModel::where("id_proyek", $tender['id_proyek'])->first();
 
+            $work_area=generate_report_work_area($proyek['work_area']);
             ProyekReportModel::create([
                 "id_proyek"     =>$proyek['id_proyek'],
                 "id_tender"     =>$req['id_tender'],
@@ -356,7 +357,7 @@ class TenderController extends Controller
                 "prioritas"     =>"",
                 "partner"       =>"",
                 "deskripsi"     =>"",
-                "work_area"     =>$tender['work_area']
+                "work_area"     =>$work_area
             ]);
         });
 

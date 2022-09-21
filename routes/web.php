@@ -345,6 +345,20 @@ $router->get("/report/detail/{id}", [
         "auth"
     ]
 ]);
+//--proyek summary work area
+$router->put("/report/proyek/{id}/work_area", [
+    'uses'=>"ReportController@update_progress",
+    'middleware'=>[
+        "auth"
+    ]
+]);
+//--proyek summary pic
+$router->get("/report/proyek/{id}/pic", [
+    'uses'=>"ReportController@gets_summary_pic",
+    'middleware'=>[
+        "auth"
+    ]
+]);
 
 //PENGATURAN
 $router->get("/pengaturan/profile_perusahaan", [

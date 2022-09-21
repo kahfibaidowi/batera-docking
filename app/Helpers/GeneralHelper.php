@@ -384,6 +384,37 @@ function get_owner_cost($work_area){
 
     return $owner_cost;
 }
+function found_sfi_pekerjaan_work_area($sfi_search, $work_area){
+    //var
+    $found=false;
+
+    //function
+    function recursive_dropdown_for_sfi($sfi, $item, &$found_sfi){
+        if($item['type']=="kategori"){
+            $data=[];
+            foreach($item['items'] as $work){
+                $data[]=recursive_dropdown_for_sfi($sfi, $work, $found_sfi);
+            }
+
+            return array_merge($item, [
+                'items' =>$data
+            ]);
+        }
+        elseif($item['type']=="pekerjaan"){
+            if(trim($item['sfi'])==trim($sfi)){
+                $found_sfi=true;
+            }
+            return "";
+        }
+    }
+
+    $data=[];
+    foreach($work_area as $work){
+        $data[]=recursive_dropdown_for_sfi($sfi_search, $work, $found);
+    }
+
+    return $found;
+}
 
 /*-----------------------------------------------------------------------
  * TENDER
@@ -429,6 +460,106 @@ function add_total_kontrak_tender_work_area($proyek_work_area){
     $data=[];
     foreach($proyek_work_area as $work){
         $data[]=recursive_dropdown_tender($work);
+    }
+
+    return $data;
+}
+
+/*-----------------------------------------------------------------------
+ * REPORT/SUMMARY
+ *-----------------------------------------------------------------------
+ */
+function generate_report_work_area($proyek_work_area){
+    $created_at=with_timezone(date("Y-m-d H:i:s"));
+    $updated_at=with_timezone(date("Y-m-d H:i:s"));
+
+    //function
+    function recursive_dropdown_report($item, $created, $updated){
+        if($item['type']=="kategori"){
+            $data=[];
+            foreach($item['items'] as $work){
+                $data[]=recursive_dropdown_report($work, $created, $updated);
+            }
+
+            return array_merge($item, [
+                'items' =>$data
+            ]);
+        }
+        elseif($item['type']=="pekerjaan"){
+            return array_merge($item, [
+                'status'    =>"preparation",
+                'progress'  =>0,
+                'persetujuan'   =>"pending",
+                'comment'   =>"",
+                'responsible_history'=>[],
+                'created_at'=>$created,
+                'updated_at'=>$updated
+            ]);
+        }
+    }
+
+    $data=[];
+    foreach($proyek_work_area as $work){
+        $data[]=recursive_dropdown_report($work, $created_at, $updated_at);
+    }
+
+    return $data;
+}
+function update_report_work_area($report_work_area, $login_data, $edit){
+    //function
+    function recursive_dropdown_report_update($item, $resp, $data_edit){
+        if($item['type']=="kategori"){
+            $data=[];
+            foreach($item['items'] as $work){
+                $data[]=recursive_dropdown_report_update($work, $resp, $data_edit);
+            }
+
+            return array_merge($item, [
+                'items' =>$data
+            ]);
+        }
+        elseif($item['type']=="pekerjaan"){
+            if(trim($item['sfi'])==trim($data_edit['sfi'])){
+                //value
+                $updated_at=with_timezone(date("Y-m-d H:i:s"));
+
+                //resp
+                $dept="";
+                if($data_edit['responsible']=="shipowner"){
+                    $dept="MD";
+                }
+                elseif($data_edit['responsible']=="shipyard"){
+                    $dept="CM";
+                }
+
+                //data
+                $new_data=[
+                    'status'    =>$data_edit['status'],
+                    'progress'  =>$data_edit['progress'],
+                    'persetujuan'   =>$data_edit['persetujuan'],
+                    'responsible'   =>$data_edit['responsible'],
+                    'departement'   =>$dept,
+                    'comment'   =>$data_edit['comment'],
+                    'updated_at'=>$updated_at
+                ];
+                $resp_history=$item['responsible_history'];
+                $resp_history[]=[
+                    'before'=>array_merge_without($item, ["responsible_history"], []),
+                    'after' =>array_merge_without($item, ['responsible_history'], $new_data)
+                ];
+
+                //return
+                return array_merge($item, $new_data, [
+                    'responsible_history'=>$resp_history
+                ]);
+            }
+            return $item;
+        }
+    }
+
+    $data=[];
+    foreach($report_work_area as $work){
+        $data[]=recursive_dropdown_report_update($work, $login_data, $edit);
     }
 
     return $data;
