@@ -241,7 +241,7 @@ function validation_proyek_work_area($work_area){
                 'date_format:Y-m-d',
                 'after_or_equal:start'
             ],
-            'departement'=>[
+            'departemen'=>[
                 Rule::requiredIf(function()use($item){
                     if(!isset($item['type'])) return true;
                     if($item['type']=="pekerjaan") return true;
@@ -538,14 +538,15 @@ function update_report_work_area($report_work_area, $login_data, $edit){
                     'progress'  =>$data_edit['progress'],
                     'persetujuan'   =>$data_edit['persetujuan'],
                     'responsible'   =>$data_edit['responsible'],
-                    'departement'   =>$dept,
+                    'departemen'   =>$dept,
                     'comment'   =>$data_edit['comment'],
                     'updated_at'=>$updated_at
                 ];
                 $resp_history=$item['responsible_history'];
                 $resp_history[]=[
                     'before'=>array_merge_without($item, ["responsible_history"], []),
-                    'after' =>array_merge_without($item, ['responsible_history'], $new_data)
+                    'after' =>array_merge_without($item, ['responsible_history'], $new_data),
+                    'created_by'=>$resp
                 ];
 
                 //return
@@ -561,6 +562,84 @@ function update_report_work_area($report_work_area, $login_data, $edit){
     foreach($report_work_area as $work){
         $data[]=recursive_dropdown_report_update($work, $login_data, $edit);
     }
+
+    return $data;
+}
+function calculate_summary_work_area($work_area){
+
+    $data=[];
+    foreach($work_area as $work){
+        $data[]=recursive_dropdown_summary($work);
+    }
+
+    return $data;
+}
+function get_progress_summary($item){
+    //function recursive
+    $count_pekerjaan=0;
+    $count_pekerjaan_pending=0;
+    $count_pekerjaan_reject=0;
+    
+
+    //script
+    $sum=progress_summary_recursive($item, $count_pekerjaan, $count_pekerjaan_pending, $count_pekerjaan_reject);
+
+    return [
+        'count_pending' =>$count_pekerjaan_pending,
+        'count_applied' =>$count_pekerjaan,
+        'count_rejected'=>$count_pekerjaan_reject,
+        'progress'      =>$sum/(($count_pekerjaan+$count_pekerjaan_pending+$count_pekerjaan_reject)?:1)
+    ];
+}
+function progress_summary_recursive($work, &$count_work, &$count_pending, &$count_reject){
+    $cost=0;
+
+    if($work['type']=="pekerjaan"){
+        if($work['persetujuan']=="applied"){
+            $cost+=$work['progress'];
+            $count_work++;
+        }
+        if($work['persetujuan']=="pending"){
+            $count_pending++;
+        }
+        if($work['persetujuan']=="rejected"){
+            $count_reject++;
+        }
+    }
+    if($work['type']=="kategori"){
+        foreach($work['items'] as $item){
+            $cost+=progress_summary_recursive($item, $count_work, $count_pending, $count_reject);
+        }
+    }
+
+    return $cost;
+}
+function recursive_dropdown_summary($item){
+    if($item['type']=="kategori"){
+        $data=[];
+        foreach($item['items'] as $work){
+            $data[]=recursive_dropdown_summary($work);
+        }
+
+        $progress=get_progress_summary($item);
+        return array_merge($item, [
+            'items' =>$data,
+            'progress'  =>$progress['progress'],
+            'count_pekerjaan_pending'   =>$progress['count_pending'],
+            'count_pekerjaan_rejected'  =>$progress['count_rejected'],
+            'count_pekerjaan_applied'   =>$progress['count_applied'],
+            'count_pekerjaan'           =>$progress['count_pending']+$progress['count_rejected']+$progress['count_applied']
+        ]);
+    }
+    elseif($item['type']=="pekerjaan"){
+        return $item;
+    }
+}
+function calculate_akumulasi_summary($work_area){
+    $data=get_progress_summary([
+        'type'  =>"kategori",
+        'items' =>$work_area
+    ]);
 
     return $data;
 }

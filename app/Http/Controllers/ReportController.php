@@ -188,10 +188,19 @@ class ReportController extends Controller
             $general_diskon=($proyek['tender']['general_diskon_persen']/100)*$proyek['tender']['yard_total_quote'];
             $after_diskon=$proyek['tender']['yard_total_quote']-$general_diskon;
 
+            
+            $work_area=calculate_summary_work_area($proyek['work_area']);
+            $akumulasi_summary=calculate_akumulasi_summary($proyek['work_area']);
             $data[]=array_merge_without($proyek, ['tender'], [
                 'perusahaan'    =>get_info_perusahaan(),
                 'estimate_cost' =>$after_diskon,
-                'proyek'        =>array_merge_without($proyek['proyek'], ['work_area'], [])
+                'proyek'        =>array_merge_without($proyek['proyek'], ['work_area'], []),
+                'work_area'     =>$work_area,
+                'progress'      =>$akumulasi_summary['progress'],
+                'count_pekerjaan_pending' =>$akumulasi_summary['count_pending'],
+                'count_pekerjaan_applied' =>$akumulasi_summary['count_applied'],
+                'count_pekerjaan_rejected'=>$akumulasi_summary['count_rejected'],
+                'count_pekerjaan'         =>$akumulasi_summary['count_pending']+$akumulasi_summary['count_applied']+$akumulasi_summary['count_rejected']
             ]);
         }
 
@@ -258,10 +267,18 @@ class ReportController extends Controller
         $general_diskon=($proyek_summary['tender']['general_diskon_persen']/100)*$proyek_summary['tender']['yard_total_quote'];
         $after_diskon=$proyek_summary['tender']['yard_total_quote']-$general_diskon;
 
+        $work_area=calculate_summary_work_area($proyek_summary['work_area']);
+        $akumulasi_summary=calculate_akumulasi_summary($proyek_summary['work_area']);
         $data=array_merge_without($proyek_summary, ['tender'], [
             'perusahaan'    =>get_info_perusahaan(),
             'estimate_cost' =>$after_diskon,
-            'proyek'        =>array_merge_without($proyek_summary['proyek'], ['work_area'], [])
+            'proyek'        =>array_merge_without($proyek_summary['proyek'], ['work_area'], []),
+            'work_area'     =>$work_area,
+            'progress'      =>$akumulasi_summary['progress'],
+            'count_pekerjaan_pending' =>$akumulasi_summary['count_pending'],
+            'count_pekerjaan_applied' =>$akumulasi_summary['count_applied'],
+            'count_pekerjaan_rejected'=>$akumulasi_summary['count_rejected'],
+            'count_pekerjaan'         =>$akumulasi_summary['count_pending']+$akumulasi_summary['count_applied']+$akumulasi_summary['count_rejected']
         ]);
 
         return response()->json([
