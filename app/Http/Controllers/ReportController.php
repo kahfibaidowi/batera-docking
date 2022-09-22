@@ -192,7 +192,6 @@ class ReportController extends Controller
             $work_area=calculate_summary_work_area($proyek['work_area']);
             $akumulasi_summary=calculate_akumulasi_summary($proyek['work_area']);
             $data[]=array_merge_without($proyek, ['tender'], [
-                'perusahaan'    =>get_info_perusahaan(),
                 'estimate_cost' =>$after_diskon,
                 'proyek'        =>array_merge_without($proyek['proyek'], ['work_area'], []),
                 'work_area'     =>$work_area,
@@ -270,7 +269,6 @@ class ReportController extends Controller
         $work_area=calculate_summary_work_area($proyek_summary['work_area']);
         $akumulasi_summary=calculate_akumulasi_summary($proyek_summary['work_area']);
         $data=array_merge_without($proyek_summary, ['tender'], [
-            'perusahaan'    =>get_info_perusahaan(),
             'estimate_cost' =>$after_diskon,
             'proyek'        =>array_merge_without($proyek_summary['proyek'], ['work_area'], []),
             'work_area'     =>$work_area,
