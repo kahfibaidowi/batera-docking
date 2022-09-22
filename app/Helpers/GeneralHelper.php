@@ -183,6 +183,55 @@ function array_without($array, $without)
 
     return $new_array;
 }
+function array_merge_with($array, $with, $merge)
+{
+    $new_array=[];
+    foreach($with as $w){
+        if(isset($array[$w])) $new_array[$w]=$array[$w];
+    }
+
+    return array_merge($new_array, $merge);
+}
+
+/*-----------------------------------------------------------------------
+ * HOME
+ *-----------------------------------------------------------------------
+ */
+function generate_summary_kapal($kapal, $login_data){
+    $proyek=[];
+    foreach($kapal['proyek'] as $p){
+        $report=null;
+        if(!is_null($p['report'])){
+            $akumulasi_summary=calculate_akumulasi_summary($p['report']['work_area']);
+
+            $report=array_merge_with($p['report'], ['id_proyek_report', 'id_proyek', 'status'], [
+                'progress'      =>$akumulasi_summary['progress'],
+                'count_pekerjaan_pending' =>$akumulasi_summary['count_pending'],
+                'count_pekerjaan_applied' =>$akumulasi_summary['count_applied'],
+                'count_pekerjaan_rejected'=>$akumulasi_summary['count_rejected'],
+                'count_pekerjaan'         =>$akumulasi_summary['count_pending']+$akumulasi_summary['count_applied']+$akumulasi_summary['count_rejected']
+            ]);
+        }
+
+        //data
+        if($login_data['role']=="shipyard"){
+            if(!is_null($report)){
+                if($p['report']['tender']['id_user']==$login_data['id_user']){
+                    $proyek[]=array_merge_with($p, ['id_proyek', 'id_kapal', 'nama_proyek', 'tahun'], [
+                        'report'=>$report
+                    ]);
+                }
+            }
+        }
+        else{
+            $proyek[]=array_merge_with($p, ['id_proyek', 'id_kapal', 'nama_proyek', 'tahun'], [
+                'report'=>$report
+            ]);
+        }
+    }
+    
+    return $proyek;
+}
 
 
 

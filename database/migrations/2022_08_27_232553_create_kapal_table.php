@@ -16,22 +16,20 @@ return new class extends Migration
         Schema::create("tbl_kapal", function (Blueprint $table) {
             $table->id("id_kapal");
             $table->unsignedBigInteger("id_user")->comment("pemilik kapal");
+            $table->unsignedBigInteger("id_perusahaan")->comment("perusahaan");
             $table->text("nama_kapal");
             $table->text("foto");
-            $table->text("nama_perusahaan");
-            $table->text("merk_perusahaan");
-            $table->text("alamat_perusahaan_1");
-            $table->text("alamat_perusahaan_2");
-            $table->text("telepon");
-            $table->text("faximile");
-            $table->text("npwp");
-            $table->text("email");
             $table->timestamps();
 
             //fk
             $table->foreign("id_user")
                 ->references("id_user")
                 ->on("tbl_users")
+                ->onDelete("cascade");
+
+            $table->foreign("id_perusahaan")
+                ->references("id_perusahaan")
+                ->on("tbl_perusahaan")
                 ->onDelete("cascade");
         });
     }

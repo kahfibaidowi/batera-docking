@@ -11,16 +11,9 @@ class KapalModel extends Model{
     protected $primaryKey="id_kapal";
     protected $fillable=[
         'id_user',
+        'id_perusahaan',
         'nama_kapal',
         'foto',
-        'nama_perusahaan',
-        'merk_perusahaan',
-        'alamat_perusahaan_1',
-        'alamat_perusahaan_2',
-        'telepon',
-        'faximile',
-        'npwp',
-        'email'
     ];
     protected $hidden=[];
 
@@ -31,5 +24,13 @@ class KapalModel extends Model{
      */
     public function owner(){
         return $this->belongsTo(UserModel::class, "id_user");
+    }
+
+    public function proyek(){
+        return $this->hasMany(ProyekModel::class, "id_kapal")->orderByDesc("id_proyek");
+    }
+
+    public function perusahaan(){
+        return $this->belongsTo(PerusahaanModel::class, "id_perusahaan");
     }
 }

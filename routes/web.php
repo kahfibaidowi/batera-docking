@@ -157,6 +157,38 @@ $router->put("/user/{id}", [
     ]
 ]);
 
+//PERUSAHAAN
+$router->post("/perusahaan", [
+    'uses'=>"PerusahaanController@add_perusahaan",
+    'middleware'=>[
+        'auth'
+    ]
+]);
+$router->put("/perusahaan/{id}", [
+    'uses'=>"PerusahaanController@update_perusahaan",
+    'middleware'=>[
+        'auth'
+    ]
+]);
+$router->delete("/perusahaan/{id}", [
+    'uses'=>"PerusahaanController@delete_perusahaan",
+    'middleware'=>[
+        'auth'
+    ]
+]);
+$router->get("/perusahaan", [
+    'uses'=>"PerusahaanController@gets_perusahaan",
+    'middleware'=>[
+        'auth'
+    ]
+]);
+$router->get("/perusahaan/{id}", [
+    'uses'=>"PerusahaanController@get_perusahaan",
+    'middleware'=>[
+        'auth'
+    ]
+]);
+
 //FILE
 $router->post("/file/upload", [
     'uses'=>"FileController@upload",
@@ -169,6 +201,7 @@ $router->get("/file/show/{file}", [
 ]);
 
 //DASHBOARD
+//--kapal
 $router->post("/home/kapal", [
     'uses'=>"HomeController@add_vessel",
     'middleware'=>[

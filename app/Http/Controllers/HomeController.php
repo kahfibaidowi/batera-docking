@@ -10,34 +10,50 @@ use Illuminate\Database\Eloquent\Builder;
 use App\Models\KapalModel;
 use App\Models\UserModel;
 use App\Models\UserShipownerModel;
+use App\Models\ProyekModel;
+use App\Models\PerusahaanModel;
 
 class HomeController extends Controller
 {
 
+    //KAPAL
     public function gets_vessel(Request $request)
     {
         $login_data=$request['fm__login_data'];
         $req=$request->all();
 
         //ROLE AUTHENTICATION
-        if(!in_array($login_data['role'], ['admin', 'shipowner', 'shipmanager'])){
+        if(!in_array($login_data['role'], ['admin', 'shipowner', 'shipyard', 'shipmanager'])){
             return response()->json([
                 'error' =>"ACCESS_NOT_ALLOWED"
             ], 403);
         }
 
         //SUCCESS
-        $kapal=KapalModel::with("owner");
+        $kapal=KapalModel::with("owner", "perusahaan", "proyek", "proyek.report", "proyek.report.tender");
         //shipowner
         if($login_data['role']=="shipowner"){
             $kapal=$kapal->where("id_user", $login_data['id_user']);
+        }
+        //shipyard
+        if($login_data['role']=="shipyard"){
+            $kapal=$kapal->whereHas("proyek.report.tender", function($query)use($login_data){
+                $query->where("id_user", $login_data['id_user']);
+            });
         }
         //get data
         $kapal=$kapal->orderByDesc("id_kapal")
             ->get()->toArray();
 
+        $data=[];
+        foreach($kapal as $val){
+            $data[]=array_merge($val, [
+                'proyek'=>generate_summary_kapal($val, $login_data)
+            ]);
+        }
+
         return response()->json([
-            'data'  =>$kapal
+            'data'  =>$data
         ]);
     }
 
@@ -47,7 +63,7 @@ class HomeController extends Controller
         $req=$request->all();
 
         //ROLE AUTHENTICATION
-        if(!in_array($login_data['role'], ['admin', 'shipowner', 'shipmanager'])){
+        if(!in_array($login_data['role'], ['admin', 'shipowner', 'shipyard', 'shipmanager'])){
             return response()->json([
                 'error' =>"ACCESS_NOT_ALLOWED"
             ], 403);
@@ -62,7 +78,23 @@ class HomeController extends Controller
                     if($login_data['role']=="shipowner"){
                         return $query->where("id_user", $login_data['id_user']);
                     }
-                })
+                }),
+                function($attr, $value, $fail)use($login_data){
+                    $v=KapalModel::where("id_kapal", $value);
+                    //shipyard
+                    if($login_data['role']=="shipyard"){
+                        $v=$v->whereHas("proyek.report.tender", function($query)use($login_data){
+                            $query->where("id_user", $login_data['id_user']);
+                        });
+                    }
+                    //get
+                    $v=$v->first();
+
+                    if(is_null($v)){
+                        return $fail("kapal not allowed");
+                    }
+                    return true;
+                }
             ]
         ]);
         if($validation->fails()){
@@ -73,13 +105,15 @@ class HomeController extends Controller
         }
 
         //SUCCESS
-        $kapal=KapalModel::with("owner")
+        $kapal=KapalModel::with("owner", "perusahaan", "proyek", "proyek.report", "proyek.report.tender")
             ->where("id_kapal", $req['id_kapal'])
             ->orderByDesc("id_kapal")
             ->first()->toArray();
 
         return response()->json([
-            'data'  =>$kapal
+            'data'  =>array_merge($kapal, [
+                'proyek'=>generate_summary_kapal($kapal, $login_data)
+            ])
         ]);
     }
 
@@ -116,6 +150,7 @@ class HomeController extends Controller
                     return true;
                 }
             ],
+            'id_perusahaan' =>"required|exists:App\Models\PerusahaanModel,id_perusahaan",
             'nama_kapal'=>"required",
             'foto'      =>[
                 'required',
@@ -126,15 +161,7 @@ class HomeController extends Controller
                     }
                     return $fail($attr." image not found");
                 }
-            ],
-            'nama_perusahaan'   =>"required",
-            'merk_perusahaan'   =>"required",
-            'alamat_perusahaan_1'   =>[Rule::requiredIf(!isset($req['alamat_perusahaan_1']))],
-            'alamat_perusahaan_2'   =>[Rule::requiredIf(!isset($req['alamat_perusahaan_2']))],
-            'telepon'   =>"required",
-            'faximile'  =>"required",
-            'npwp'      =>"required",
-            'email'     =>"required|email"
+            ]
         ]);
         if($validation->fails()){
             return response()->json([
@@ -150,14 +177,7 @@ class HomeController extends Controller
                 'id_user'   =>$req['id_user'],
                 'nama_kapal'=>$req['nama_kapal'],
                 'foto'      =>$req['foto'],
-                'nama_perusahaan'   =>$req['nama_perusahaan'],
-                'merk_perusahaan'   =>$req['merk_perusahaan'],
-                'alamat_perusahaan_1'   =>$req['alamat_perusahaan_1'],
-                'alamat_perusahaan_2'   =>$req['alamat_perusahaan_2'],
-                'telepon'   =>$req['telepon'],
-                'faximile'  =>$req['faximile'],
-                'npwp'      =>$req['npwp'],
-                'email'     =>$req['email']
+                'id_perusahaan' =>$req['id_perusahaan']
             ]);
 
             //user shipowner
@@ -255,14 +275,7 @@ class HomeController extends Controller
                     return $fail($attr." image not found");
                 }
             ],
-            'nama_perusahaan'   =>"required",
-            'merk_perusahaan'   =>"required",
-            'alamat_perusahaan_1'   =>[Rule::requiredIf(!isset($req['alamat_perusahaan_1']))],
-            'alamat_perusahaan_2'   =>[Rule::requiredIf(!isset($req['alamat_perusahaan_2']))],
-            'telepon'   =>"required",
-            'faximile'  =>"required",
-            'npwp'      =>"required",
-            'email'     =>"required|email"
+            'id_perusahaan' =>"required|exists:App\Models\PerusahaanModel,id_perusahaan"
         ]);
         if($validation->fails()){
             return response()->json([
@@ -277,14 +290,7 @@ class HomeController extends Controller
                 ->update([
                     'nama_kapal'=>$req['nama_kapal'],
                     'foto'      =>$req['foto'],
-                    'nama_perusahaan'   =>$req['nama_perusahaan'],
-                    'merk_perusahaan'   =>$req['merk_perusahaan'],
-                    'alamat_perusahaan_1'   =>$req['alamat_perusahaan_1'],
-                    'alamat_perusahaan_2'   =>$req['alamat_perusahaan_2'],
-                    'telepon'   =>$req['telepon'],
-                    'faximile'  =>$req['faximile'],
-                    'npwp'      =>$req['npwp'],
-                    'email'     =>$req['email']
+                    'id_perusahaan' =>$req['id_perusahaan']
                 ]);
         });
 

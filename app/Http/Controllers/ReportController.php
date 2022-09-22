@@ -151,7 +151,7 @@ class ReportController extends Controller
         }
 
         //SUCCESS
-        $proyek_summary=ProyekReportModel::with("proyek", "proyek.kapal", "tender", "tender.shipyard");
+        $proyek_summary=ProyekReportModel::with("proyek", "proyek.kapal", "proyek.kapal.perusahaan", "tender", "tender.shipyard");
         //q
         $proyek_summary=$proyek_summary->where(function($q)use($req){
             $q->whereHas("proyek", function($query)use($req){
@@ -259,7 +259,7 @@ class ReportController extends Controller
         }
 
         //SUCCESS
-        $proyek_summary=ProyekReportModel::with("proyek", "proyek.kapal", "tender", "tender.shipyard")
+        $proyek_summary=ProyekReportModel::with("proyek", "proyek.kapal", "proyek.kapal.perusahaan", "tender", "tender.shipyard")
             ->where("id_proyek", $req['id_proyek'])
             ->first()
             ->toArray();

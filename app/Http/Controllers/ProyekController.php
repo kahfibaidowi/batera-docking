@@ -371,7 +371,7 @@ class ProyekController extends Controller
         }
 
         //SUCCESS
-        $proyek=ProyekModel::with("kapal", "kapal.owner");
+        $proyek=ProyekModel::with("kapal", "kapal.owner", "kapal.perusahaan");
         //q
         $proyek=$proyek->where("nama_proyek", "ilike", "%".$req['q']."%");
         //shipowner
@@ -433,7 +433,7 @@ class ProyekController extends Controller
 
         //SUCCESS
         $proyek=ProyekModel::where("id_proyek", $req['id_proyek'])
-            ->with("kapal", "kapal.owner")
+            ->with("kapal", "kapal.owner", "kapal.perusahaan")
             ->first()
             ->toArray();
 
