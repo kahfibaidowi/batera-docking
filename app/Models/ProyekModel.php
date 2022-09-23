@@ -42,7 +42,17 @@ class ProyekModel extends Model{
         'work_area' =>'array'
     ];
 
-    protected $hidden=[];
+    protected $hidden=['status'];
+
+    /*
+     *#CUSTOM ATTR
+     *
+     */
+    protected $appends=['published'];
+
+    public function getPublishedAttribute(){
+        return $this->status=="published"?true:false;
+    }
 
 
     /*
