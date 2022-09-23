@@ -86,6 +86,7 @@ class UserController extends Controller
         $login_data=$request['fm__login_data'];
         $req=$request->all();
 
+        //VALIDATION
         $validation=Validator::make($req, [
             'per_page'  =>[
                 Rule::requiredIf(!isset($req['per_page'])),

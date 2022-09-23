@@ -375,29 +375,29 @@ function validation_proyek_work_area($work_area){
         'data'  =>$error
     ];
 }
+function recursive_dropdown_timestamps($item, $created, $updated){
+    if($item['type']=="kategori"){
+        $data=[];
+        foreach($item['items'] as $work){
+            $data[]=recursive_dropdown_timestamps($work, $created, $updated);
+        }
+
+        return array_merge($item, [
+            'items' =>$data
+        ]);
+    }
+    elseif($item['type']=="pekerjaan"){
+        return array_merge($item, [
+            'created_at'=>$created,
+            'updated_at'=>$updated
+        ]);
+    }
+}
 function add_timestamps_proyek_work_area($work_area){
     $created_at=with_timezone(date("Y-m-d H:i:s"));
     $updated_at=with_timezone(date("Y-m-d H:i:s"));
 
     //function
-    function recursive_dropdown_timestamps($item, $created, $updated){
-        if($item['type']=="kategori"){
-            $data=[];
-            foreach($item['items'] as $work){
-                $data[]=recursive_dropdown_timestamps($work, $created, $updated);
-            }
-
-            return array_merge($item, [
-                'items' =>$data
-            ]);
-        }
-        elseif($item['type']=="pekerjaan"){
-            return array_merge($item, [
-                'created_at'=>$created,
-                'updated_at'=>$updated
-            ]);
-        }
-    }
 
     $data=[];
     foreach($work_area as $work){
@@ -406,24 +406,24 @@ function add_timestamps_proyek_work_area($work_area){
 
     return $data;
 }
+function owner_cost_recursive($work){
+    $cost=0;
+
+    if($work['type']=="pekerjaan"){
+        if($work['responsible']=="shipowner"){
+            $cost+=$work['kontrak']+$work['additional'];
+        }
+    }
+    if($work['type']=="kategori"){
+        foreach($work['items'] as $item){
+            $cost+=owner_cost_recursive($item);
+        }
+    }
+
+    return $cost;
+}
 function get_owner_cost($work_area){
     //function recursive
-    function owner_cost_recursive($work){
-        $cost=0;
-
-        if($work['type']=="pekerjaan"){
-            if($work['responsible']=="shipowner"){
-                $cost+=$work['kontrak']+$work['additional'];
-            }
-        }
-        if($work['type']=="kategori"){
-            foreach($work['items'] as $item){
-                $cost+=owner_cost_recursive($item);
-            }
-        }
-
-        return $cost;
-    }
 
     //script
     $owner_cost=0;
@@ -433,29 +433,29 @@ function get_owner_cost($work_area){
 
     return $owner_cost;
 }
+function recursive_dropdown_for_sfi($sfi, $item, &$found_sfi){
+    if($item['type']=="kategori"){
+        $data=[];
+        foreach($item['items'] as $work){
+            $data[]=recursive_dropdown_for_sfi($sfi, $work, $found_sfi);
+        }
+
+        return array_merge($item, [
+            'items' =>$data
+        ]);
+    }
+    elseif($item['type']=="pekerjaan"){
+        if(trim($item['sfi'])==trim($sfi)){
+            $found_sfi=true;
+        }
+        return "";
+    }
+}
 function found_sfi_pekerjaan_work_area($sfi_search, $work_area){
     //var
     $found=false;
 
     //function
-    function recursive_dropdown_for_sfi($sfi, $item, &$found_sfi){
-        if($item['type']=="kategori"){
-            $data=[];
-            foreach($item['items'] as $work){
-                $data[]=recursive_dropdown_for_sfi($sfi, $work, $found_sfi);
-            }
-
-            return array_merge($item, [
-                'items' =>$data
-            ]);
-        }
-        elseif($item['type']=="pekerjaan"){
-            if(trim($item['sfi'])==trim($sfi)){
-                $found_sfi=true;
-            }
-            return "";
-        }
-    }
 
     $data=[];
     foreach($work_area as $work){
@@ -469,41 +469,41 @@ function found_sfi_pekerjaan_work_area($sfi_search, $work_area){
  * TENDER
  *-----------------------------------------------------------------------
  */
+function recursive_volxharsat_tender($item){
+    $sum=0;
+    if($item['type']=="kategori"){
+        foreach($item['items'] as $work){
+            $sum+=recursive_volxharsat_tender($work);
+        }
+    }
+    elseif($item['type']=="pekerjaan"){
+        $sum+=$item['volume']*$item['harga_satuan'];
+    }
+
+    return $sum;
+}
+function recursive_dropdown_tender($item){
+    if($item['type']=="kategori"){
+        $sum=0;
+        $data=[];
+        foreach($item['items'] as $work){
+            $sum+=recursive_volxharsat_tender($work);
+            $data[]=recursive_dropdown_tender($work);
+        }
+
+        return array_merge($item, [
+            'items'         =>$data,
+            'total_kontrak' =>$sum
+        ]);
+    }
+    elseif($item['type']=="pekerjaan"){
+        return array_merge($item, [
+            'total_kontrak' =>$item['volume']*$item['harga_satuan']
+        ]);
+    }
+}
 function add_total_kontrak_tender_work_area($proyek_work_area){
     //function
-    function recursive_volxharsat_tender($item){
-        $sum=0;
-        if($item['type']=="kategori"){
-            foreach($item['items'] as $work){
-                $sum+=recursive_volxharsat_tender($work);
-            }
-        }
-        elseif($item['type']=="pekerjaan"){
-            $sum+=$item['volume']*$item['harga_satuan'];
-        }
-
-        return $sum;
-    }
-    function recursive_dropdown_tender($item){
-        if($item['type']=="kategori"){
-            $sum=0;
-            $data=[];
-            foreach($item['items'] as $work){
-                $sum+=recursive_volxharsat_tender($work);
-                $data[]=recursive_dropdown_tender($work);
-            }
-
-            return array_merge($item, [
-                'items'         =>$data,
-                'total_kontrak' =>$sum
-            ]);
-        }
-        elseif($item['type']=="pekerjaan"){
-            return array_merge($item, [
-                'total_kontrak' =>$item['volume']*$item['harga_satuan']
-            ]);
-        }
-    }
 
     //data
     $data=[];
@@ -518,34 +518,34 @@ function add_total_kontrak_tender_work_area($proyek_work_area){
  * REPORT/SUMMARY
  *-----------------------------------------------------------------------
  */
+function recursive_dropdown_report($item, $created, $updated){
+    if($item['type']=="kategori"){
+        $data=[];
+        foreach($item['items'] as $work){
+            $data[]=recursive_dropdown_report($work, $created, $updated);
+        }
+
+        return array_merge($item, [
+            'items' =>$data
+        ]);
+    }
+    elseif($item['type']=="pekerjaan"){
+        return array_merge($item, [
+            'status'    =>"preparation",
+            'progress'  =>0,
+            'persetujuan'   =>"pending",
+            'comment'   =>"",
+            'responsible_history'=>[],
+            'created_at'=>$created,
+            'updated_at'=>$updated
+        ]);
+    }
+}
 function generate_report_work_area($proyek_work_area){
     $created_at=with_timezone(date("Y-m-d H:i:s"));
     $updated_at=with_timezone(date("Y-m-d H:i:s"));
 
     //function
-    function recursive_dropdown_report($item, $created, $updated){
-        if($item['type']=="kategori"){
-            $data=[];
-            foreach($item['items'] as $work){
-                $data[]=recursive_dropdown_report($work, $created, $updated);
-            }
-
-            return array_merge($item, [
-                'items' =>$data
-            ]);
-        }
-        elseif($item['type']=="pekerjaan"){
-            return array_merge($item, [
-                'status'    =>"preparation",
-                'progress'  =>0,
-                'persetujuan'   =>"pending",
-                'comment'   =>"",
-                'responsible_history'=>[],
-                'created_at'=>$created,
-                'updated_at'=>$updated
-            ]);
-        }
-    }
 
     $data=[];
     foreach($proyek_work_area as $work){
@@ -554,58 +554,60 @@ function generate_report_work_area($proyek_work_area){
 
     return $data;
 }
-function update_report_work_area($report_work_area, $login_data, $edit){
-    //function
-    function recursive_dropdown_report_update($item, $resp, $data_edit){
-        if($item['type']=="kategori"){
-            $data=[];
-            foreach($item['items'] as $work){
-                $data[]=recursive_dropdown_report_update($work, $resp, $data_edit);
+function recursive_dropdown_report_update($item, $resp, $data_edit){
+    if($item['type']=="kategori"){
+        $data=[];
+        foreach($item['items'] as $work){
+            $data[]=recursive_dropdown_report_update($work, $resp, $data_edit);
+        }
+
+        return array_merge($item, [
+            'items' =>$data
+        ]);
+    }
+    elseif($item['type']=="pekerjaan"){
+        if(trim($item['sfi'])==trim($data_edit['sfi'])){
+            //value
+            $updated_at=with_timezone(date("Y-m-d H:i:s"));
+
+            //resp
+            $dept="";
+            if($data_edit['responsible']=="shipowner"){
+                $dept="MD";
+            }
+            elseif($data_edit['responsible']=="shipyard"){
+                $dept="CM";
             }
 
-            return array_merge($item, [
-                'items' =>$data
+            //data
+            $new_data=[
+                'start'     =>$data_edit['start'],
+                'end'       =>$data_edit['end'],
+                'status'    =>$data_edit['status'],
+                'progress'  =>$data_edit['progress'],
+                'persetujuan'   =>$data_edit['persetujuan'],
+                'responsible'   =>$data_edit['responsible'],
+                'departemen'   =>$dept,
+                'comment'   =>$data_edit['comment'],
+                'updated_at'=>$updated_at
+            ];
+            $resp_history=$item['responsible_history'];
+            $resp_history[]=[
+                'before'=>array_merge_without($item, ["responsible_history"], []),
+                'after' =>array_merge_without($item, ['responsible_history'], $new_data),
+                'created_by'=>$resp
+            ];
+
+            //return
+            return array_merge($item, $new_data, [
+                'responsible_history'=>$resp_history
             ]);
         }
-        elseif($item['type']=="pekerjaan"){
-            if(trim($item['sfi'])==trim($data_edit['sfi'])){
-                //value
-                $updated_at=with_timezone(date("Y-m-d H:i:s"));
-
-                //resp
-                $dept="";
-                if($data_edit['responsible']=="shipowner"){
-                    $dept="MD";
-                }
-                elseif($data_edit['responsible']=="shipyard"){
-                    $dept="CM";
-                }
-
-                //data
-                $new_data=[
-                    'status'    =>$data_edit['status'],
-                    'progress'  =>$data_edit['progress'],
-                    'persetujuan'   =>$data_edit['persetujuan'],
-                    'responsible'   =>$data_edit['responsible'],
-                    'departemen'   =>$dept,
-                    'comment'   =>$data_edit['comment'],
-                    'updated_at'=>$updated_at
-                ];
-                $resp_history=$item['responsible_history'];
-                $resp_history[]=[
-                    'before'=>array_merge_without($item, ["responsible_history"], []),
-                    'after' =>array_merge_without($item, ['responsible_history'], $new_data),
-                    'created_by'=>$resp
-                ];
-
-                //return
-                return array_merge($item, $new_data, [
-                    'responsible_history'=>$resp_history
-                ]);
-            }
-            return $item;
-        }
+        return $item;
     }
+}
+function update_report_work_area($report_work_area, $login_data, $edit){
+    //function
 
     $data=[];
     foreach($report_work_area as $work){
@@ -691,6 +693,134 @@ function calculate_akumulasi_summary($work_area){
     ]);
 
     return $data;
+}
+
+/*-----------------------------------------------------------------------
+ * TRACKING
+ *-----------------------------------------------------------------------
+ */
+function find_date_max_min($work, &$min, &$max){
+    if($work['type']=="kategori"){
+        foreach($work['items'] as $item){
+            find_date_max_min($item, $min, $max);
+        }
+    }
+    elseif($work['type']=="pekerjaan"){
+        if($min=="") $min=$work['start'];
+        if($max=="") $max=$work['end'];
+
+        if(strtotime($min)>strtotime($work['start'])) $min=$work['start'];
+        if(strtotime($max)<strtotime($work['end'])) $max=$work['end'];
+    }
+}
+function recursive_tracking_sum($item, $report=false){
+    if($item['type']=="kategori"){
+        $date_min="";
+        $date_max="";
+        find_date_max_min($item, $date_min, $date_max);
+
+        $items=[];
+        foreach($item['items'] as $v){
+            $items[]=recursive_tracking_sum($v, $report);
+        }
+        
+        $merge2=[];
+        if($report){
+            $akumulasi_summary=get_progress_summary($item);
+            $merge2=[
+                'progress'      =>$akumulasi_summary['progress'],
+                'count_pekerjaan_pending' =>$akumulasi_summary['count_pending'],
+                'count_pekerjaan_applied' =>$akumulasi_summary['count_applied'],
+                'count_pekerjaan_rejected'=>$akumulasi_summary['count_rejected'],
+                'count_pekerjaan'         =>$akumulasi_summary['count_pending']+$akumulasi_summary['count_applied']+$akumulasi_summary['count_rejected']
+            ];
+        }
+        return array_merge($item, [
+            'items' =>$items,
+            'start' =>$date_min,
+            'end'   =>$date_max
+        ], $merge2);
+    }
+    elseif($item['type']=="pekerjaan"){
+        return $item;
+    }
+}
+function generate_tracking_kategori($work_area, $report=false){
+    $data=[];
+    foreach($work_area as $w){
+        $data[]=recursive_tracking_sum($w, $report);
+    }
+
+    return $data;
+}
+function generate_tracking_work_area($proyek_work_area, $report){
+
+    //rencana
+    $date_max="";
+    $date_min="";
+    foreach($proyek_work_area as $pw){
+        find_date_max_min($pw, $date_min, $date_max);
+    }
+    $date_rencana=[
+        'work_area' =>generate_tracking_kategori($proyek_work_area),
+        'start' =>$date_min,
+        'end'   =>$date_max
+    ];
+
+    //realisasi
+    $date_max="";
+    $date_min="";
+    foreach($report['work_area'] as $pw){
+        find_date_max_min($pw, $date_min, $date_max);
+    }
+    $akumulasi_summary=calculate_akumulasi_summary($report['work_area']);
+    $date_realisasi=[
+        'id_proyek_report'  =>$report['id_proyek_report'],
+        'status'    =>$report['status'],
+        'work_area' =>generate_tracking_kategori($report['work_area'], true),
+        'start' =>$date_min,
+        'end'   =>$date_max,
+        'progress'      =>$akumulasi_summary['progress'],
+        'count_pekerjaan_pending' =>$akumulasi_summary['count_pending'],
+        'count_pekerjaan_applied' =>$akumulasi_summary['count_applied'],
+        'count_pekerjaan_rejected'=>$akumulasi_summary['count_rejected'],
+        'count_pekerjaan'         =>$akumulasi_summary['count_pending']+$akumulasi_summary['count_applied']+$akumulasi_summary['count_rejected']
+    ];
+
+    //return
+    return [
+        'rencana'   =>$date_rencana,
+        'realisasi' =>$date_realisasi
+    ];
+}
+function generate_tracking_kapal($kapal, $login_data){
+    $proyek=[];
+    foreach($kapal['proyek'] as $p){
+        $report=null;
+        if(!is_null($p['report'])){
+            $tracking=generate_tracking_work_area($p['work_area'], $p['report']);
+
+            $report=$tracking;
+        }
+
+        //data
+        if($login_data['role']=="shipyard"){
+            if(!is_null($report)){
+                if($p['report']['tender']['id_user']==$login_data['id_user']){
+                    $proyek[]=array_merge_with($p, ['id_proyek', 'id_kapal', 'nama_proyek', 'tahun'], [
+                        'tracking'  =>$report
+                    ]);
+                }
+            }
+        }
+        else{
+            $proyek[]=array_merge_with($p, ['id_proyek', 'id_kapal', 'nama_proyek', 'tahun'], [
+                'tracking'  =>$report
+            ]);
+        }
+    }
+    
+    return $proyek;
 }
 
 /*-----------------------------------------------------------------------

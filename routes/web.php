@@ -393,6 +393,14 @@ $router->get("/report/proyek/{id}/pic", [
     ]
 ]);
 
+//TRACKING
+$router->get("/tracking", [
+    'uses'=>"TrackingController@gets_proyek_summary",
+    'middleware'=>[
+        'auth'
+    ]
+]);
+
 //PENGATURAN
 $router->get("/pengaturan/profile_perusahaan", [
     'uses'=>"PengaturanController@get_profile_perusahaan",
