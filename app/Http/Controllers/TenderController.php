@@ -53,8 +53,7 @@ class TenderController extends Controller
             'yard_total_quote'  =>"required|numeric|min:0",
             'general_diskon_persen' =>"required|numeric|between:0,100",
             'additional_diskon' =>"required|numeric|min:0",
-            'sum_internal_adjusment'=>"required|numeric|min:0",
-            'status'            =>"required|in:draft,published"
+            'sum_internal_adjusment'=>"required|numeric|min:0"
         ]);
         if($validation->fails()){
             return response()->json([
@@ -75,7 +74,7 @@ class TenderController extends Controller
                 'additional_diskon' =>$req['additional_diskon'],
                 'sum_internal_adjusment'=>$req['sum_internal_adjusment'],
                 'work_area'         =>add_total_kontrak_tender_work_area($proyek['work_area']),
-                'status'            =>$req['status']
+                'status'            =>"draft"
             ]);
         });
 
@@ -101,18 +100,18 @@ class TenderController extends Controller
         $validation=Validator::make($req, [
             'id_tender'         =>[
                 "required",
-                Rule::exists("App\Models\TenderModel")->where(function($query)use($login_data){
-                    if($login_data['role']=="shipyard"){
-                        return $query->where("id_user", $login_data['id_user'])->where("status", "draft");
+                function($attr, $value, $fail)use($login_data){
+                    $v=TenderModel::where("id_tender", $value)->where("status", "draft")->first();
+                    if(is_null($v)){
+                        return $fail("The selected id tender is invalid or tender is published.");
                     }
-                    return $query->where("status", "draft");
-                })
+                    return true;
+                }
             ],
             'yard_total_quote'  =>"required|numeric|min:0",
             'general_diskon_persen' =>"required|numeric|between:0,100",
             'additional_diskon' =>"required|numeric|min:0",
-            'sum_internal_adjusment'=>"required|numeric|min:0",
-            'status'            =>"required|in:draft,published"
+            'sum_internal_adjusment'=>"required|numeric|min:0"
         ]);
         if($validation->fails()){
             return response()->json([
@@ -128,8 +127,7 @@ class TenderController extends Controller
                     'yard_total_quote'  =>$req['yard_total_quote'],
                     'general_diskon_persen' =>$req['general_diskon_persen'],
                     'additional_diskon' =>$req['additional_diskon'],
-                    'sum_internal_adjusment'=>$req['sum_internal_adjusment'],
-                    'status'            =>$req['status']
+                    'sum_internal_adjusment'=>$req['sum_internal_adjusment']
                 ]);
         });
 
@@ -155,12 +153,13 @@ class TenderController extends Controller
         $validation=Validator::make($req, [
             'id_tender'         =>[
                 "required",
-                Rule::exists("App\Models\TenderModel")->where(function($query)use($login_data){
-                    if($login_data['role']=="shipyard"){
-                        return $query->where("id_user", $login_data['id_user'])->where("status", "draft");
+                function($attr, $value, $fail)use($login_data){
+                    $v=TenderModel::where("id_tender", $value)->where("status", "draft")->first();
+                    if(is_null($v)){
+                        return $fail("The selected id tender is invalid or tender is published.");
                     }
-                    return $query->where("status", "draft");
-                })
+                    return true;
+                }
             ]
         ]);
         if($validation->fails()){
@@ -306,7 +305,7 @@ class TenderController extends Controller
 
                     //found
                     if($t->count()==0){
-                        return $fail("The selected id tender is invalid.");
+                        return $fail("The selected id tender is invalid or tender not published.");
                     }
                     $t=$t->first();
 
@@ -389,7 +388,7 @@ class TenderController extends Controller
 
                     //found
                     if($t->count()==0){
-                        return $fail("The selected id tender is invalid.");
+                        return $fail("The selected id tender is invalid or tender not published.");
                     }
                     $t=$t->first();
 

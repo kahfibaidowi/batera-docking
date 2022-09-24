@@ -11,6 +11,7 @@ use App\Models\ProyekModel;
 class ProyekController extends Controller
 {
 
+    //PROYEK
     public function add_proyek(Request $request)
     {
         $login_data=$request['fm__login_data'];
@@ -52,16 +53,7 @@ class ProyekController extends Controller
             'owner_other'       =>"required|numeric|min:0",
             'owner_cancel_job'  =>"required|numeric|min:0",
             'yard_cost'         =>"required|numeric|min:0",
-            'yard_cancel_job'   =>"required|numeric|min:0",
-            'work_area'         =>[
-                Rule::requiredIf(function()use($req){
-                    if(!isset($req['work_area'])) return true;
-                    if(!is_array($req['work_area'])) return true;
-                }),
-                'array',
-                'min:0'
-            ],
-            'status'            =>"required|in:draft,published"
+            'yard_cancel_job'   =>"required|numeric|min:0"
         ]);
         if($validation->fails()){
             return response()->json([
@@ -69,17 +61,6 @@ class ProyekController extends Controller
                 'data'  =>$validation->errors()
             ], 500);
         }
-
-        //VALIDATION DETAIL FOR WORK AREA
-        $validate_work_area=validation_proyek_work_area($req['work_area']);
-        if($validate_work_area['error']){
-            return response()->json([
-                'data'  =>$validate_work_area['data']
-            ], 500);
-        }
-
-        //ADD CREATE_AT AND LAST_UPDATE IN WORK AREA
-        $req['work_area']=add_timestamps_proyek_work_area($req['work_area']);
 
         //SUCCESS
         DB::transaction(function() use($req, $login_data){
@@ -112,8 +93,7 @@ class ProyekController extends Controller
                 'owner_cancel_job'  =>$req['owner_cancel_job'],
                 'yard_cost'         =>$req['yard_cost'],
                 'yard_cancel_job'   =>$req['yard_cancel_job'],
-                'work_area'         =>$req['work_area'],
-                'status'            =>$req['status']
+                'status'            =>"draft"
             ]);
         });
 
@@ -147,7 +127,7 @@ class ProyekController extends Controller
                         });
                     }
                     if($v->count()==0){
-                        return $fail("The selected id proyek is invalid.");
+                        return $fail("The selected id proyek is invalid or proyek is published.");
                     }
                     return true;
                 }
@@ -171,16 +151,7 @@ class ProyekController extends Controller
             'owner_other'       =>"required|numeric|min:0",
             'owner_cancel_job'  =>"required|numeric|min:0",
             'yard_cost'         =>"required|numeric|min:0",
-            'yard_cancel_job'   =>"required|numeric|min:0",
-            'work_area'         =>[
-                Rule::requiredIf(function()use($req){
-                    if(!isset($req['work_area'])) return true;
-                    if(!is_array($req['work_area'])) return true;
-                }),
-                'array',
-                'min:0'
-            ],
-            'status'            =>"required|in:draft,published"
+            'yard_cancel_job'   =>"required|numeric|min:0"
         ]);
         if($validation->fails()){
             return response()->json([
@@ -188,17 +159,6 @@ class ProyekController extends Controller
                 'data'  =>$validation->errors()
             ], 500);
         }
-        
-        //VALIDATION DETAIL FOR WORK AREA
-        $validate_work_area=validation_proyek_work_area($req['work_area']);
-        if($validate_work_area['error']){
-            return response()->json([
-                'data'  =>$validate_work_area['data']
-            ], 500);
-        }
-
-        //ADD CREATE_AT AND LAST_UPDATE IN WORK AREA
-        $req['work_area']=add_timestamps_proyek_work_area($req['work_area']);
 
         //SUCCESS
         DB::transaction(function() use($req, $login_data){
@@ -230,9 +190,7 @@ class ProyekController extends Controller
                     'owner_other'       =>$req['owner_other'],
                     'owner_cancel_job'  =>$req['owner_cancel_job'],
                     'yard_cost'         =>$req['yard_cost'],
-                    'yard_cancel_job'   =>$req['yard_cancel_job'],
-                    'work_area'         =>json_encode($req['work_area']),
-                    'status'            =>$req['status']
+                    'yard_cancel_job'   =>$req['yard_cancel_job']
                 ]);
         });
 
@@ -266,7 +224,10 @@ class ProyekController extends Controller
                         });
                     }
                     if($v->count()==0){
-                        return $fail("The selected id proyek is invalid.");
+                        return $fail("The selected id proyek is invalid or proyek is published.");
+                    }
+                    if(count($v->first()['work_area'])==0){
+                        return $fail("Work area not found.");
                     }
                     return true;
                 }
@@ -439,6 +400,77 @@ class ProyekController extends Controller
 
         return response()->json([
             'data'  =>$proyek
+        ]);
+    }
+
+    //WORK AREA
+    public function update_proyek_work_area(Request $request, $id)
+    {
+        $login_data=$request['fm__login_data'];
+        $req=$request->all();
+
+        //ROLE AUTHENTICATION
+        if(!in_array($login_data['role'], ['admin', 'shipowner', 'shipmanager'])){
+            return response()->json([
+                'error' =>"ACCESS_NOT_ALLOWED"
+            ], 403);
+        }
+
+        //VALIDATION
+        $req['id_proyek']=$id;
+        $validation=Validator::make($req, [
+            'id_proyek'  =>[
+                "required",
+                function($attr, $value, $fail)use($login_data){
+                    $v=ProyekModel::where("id_proyek", $value)->where("status", "draft");
+                    if($login_data['role']=="shipowner"){
+                        $v=$v->whereHas("kapal", function($q)use($login_data){
+                            $q->where("id_user", $login_data['id_user']);
+                        });
+                    }
+                    if($v->count()==0){
+                        return $fail("The selected id proyek is invalid or proyek is published.");
+                    }
+                    return true;
+                }
+            ],
+            'work_area'         =>[
+                Rule::requiredIf(function()use($req){
+                    if(!isset($req['work_area'])) return true;
+                    if(!is_array($req['work_area'])) return true;
+                }),
+                'array',
+                'min:0'
+            ]
+        ]);
+        if($validation->fails()){
+            return response()->json([
+                'error' =>"VALIDATION_ERROR",
+                'data'  =>$validation->errors()
+            ], 500);
+        }
+
+        //VALIDATION DETAIL FOR WORK AREA
+        $validate_work_area=validation_proyek_work_area($req['work_area']);
+        if($validate_work_area['error']){
+            return response()->json([
+                'data'  =>$validate_work_area['data']
+            ], 500);
+        }
+
+        //ADD CREATE_AT AND LAST_UPDATE IN WORK AREA
+        $req['work_area']=add_timestamps_proyek_work_area($req['work_area']);
+
+        //SUCCESS
+        DB::transaction(function() use($req, $login_data){
+            ProyekModel::where("id_proyek", $req['id_proyek'])
+                ->update([
+                    'work_area'         =>$req['work_area']
+                ]);
+        });
+
+        return response()->json([
+            'status'=>"ok"
         ]);
     }
 }
