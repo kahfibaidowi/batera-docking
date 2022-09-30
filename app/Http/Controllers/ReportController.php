@@ -61,9 +61,7 @@ class ReportController extends Controller
             'master_plan'   =>[
                 Rule::requiredIf(!isset($req['master_plan']))
             ],
-            'negara'        =>[
-                Rule::requiredIf(!isset($req['negara']))
-            ],
+            'state'         =>"required",
             'prioritas'     =>[
                 Rule::requiredIf(!isset($req['prioritas']))
             ],
@@ -93,7 +91,7 @@ class ReportController extends Controller
                 "proyek_period" =>$proyek_period,
                 "master_plan"   =>$req['master_plan'],
                 "status"        =>$req['status'],
-                "negara"        =>$req['negara'],
+                "state"         =>$req['state'],
                 "tipe_proyek"   =>$req['tipe_proyek'],
                 "prioritas"     =>$req['prioritas'],
                 "partner"       =>$req['partner'],
@@ -151,13 +149,10 @@ class ReportController extends Controller
         }
 
         //SUCCESS
-        $proyek_summary=ProyekReportModel::with("proyek", "proyek.kapal", "proyek.kapal.perusahaan", "tender", "tender.shipyard");
+        $proyek_summary=ProyekReportModel::with("proyek", "proyek.kapal", "proyek.kapal.perusahaan");
         //q
         $proyek_summary=$proyek_summary->where(function($q)use($req){
-            $q->whereHas("proyek", function($query)use($req){
-                $query->where("nama_proyek", "ilike", "%".$req['q']."%");
-            })
-            ->orWhereHas("proyek.kapal", function($query)use($req){
+            $q->whereHas("proyek.kapal", function($query)use($req){
                 $query->where("nama_kapal", "ilike", "%".$req['q']."%");
             });
         });
@@ -184,22 +179,9 @@ class ReportController extends Controller
             ->toArray();
 
         $data=[];
-        foreach($proyek_summary['data'] as $proyek){
-            $general_diskon=($proyek['tender']['general_diskon_persen']/100)*$proyek['tender']['yard_total_quote'];
-            $after_diskon=$proyek['tender']['yard_total_quote']-$general_diskon;
-
-            
-            $work_area=calculate_summary_work_area($proyek['work_area']);
-            $akumulasi_summary=calculate_akumulasi_summary($proyek['work_area']);
-            $data[]=array_merge_without($proyek, ['tender'], [
-                'estimate_cost' =>$after_diskon,
-                'proyek'        =>array_merge_without($proyek['proyek'], ['work_area'], []),
-                'work_area'     =>$work_area,
-                'progress'      =>$akumulasi_summary['progress'],
-                'count_pekerjaan_pending' =>$akumulasi_summary['count_pending'],
-                'count_pekerjaan_applied' =>$akumulasi_summary['count_applied'],
-                'count_pekerjaan_rejected'=>$akumulasi_summary['count_rejected'],
-                'count_pekerjaan'         =>$akumulasi_summary['count_pending']+$akumulasi_summary['count_applied']+$akumulasi_summary['count_rejected']
+        foreach($proyek_summary['data'] as $val){
+            $data[]=array_merge_without($val, ['work_area'], [
+                'proyek'=>array_merge_without($val['proyek'], ['work_area'])
             ]);
         }
 
@@ -244,7 +226,7 @@ class ReportController extends Controller
                         });
                     }
                     if($p->count()==0){
-                        return $fail("The selected id proyek is invalid.");
+                        return $fail("The selected id proyek is invalid or proyek no report.");
                     }
                     return true;
                 }
@@ -266,17 +248,21 @@ class ReportController extends Controller
         $general_diskon=($proyek_summary['tender']['general_diskon_persen']/100)*$proyek_summary['tender']['yard_total_quote'];
         $after_diskon=$proyek_summary['tender']['yard_total_quote']-$general_diskon;
 
-        $work_area=calculate_summary_work_area($proyek_summary['work_area']);
-        $akumulasi_summary=calculate_akumulasi_summary($proyek_summary['work_area']);
+        $summary=get_all_summary_work_area($proyek_summary['work_area'], [
+            'total_harga_budget', 
+            'total_harga_kontrak', 
+            'total_harga_aktual', 
+            'additional',
+            'total_harga_aktual_plus_additional',
+            'progress',
+            'date_min_max',
+            'last_change'
+        ]);
         $data=array_merge_without($proyek_summary, ['tender'], [
             'estimate_cost' =>$after_diskon,
             'proyek'        =>array_merge_without($proyek_summary['proyek'], ['work_area'], []),
-            'work_area'     =>$work_area,
-            'progress'      =>$akumulasi_summary['progress'],
-            'count_pekerjaan_pending' =>$akumulasi_summary['count_pending'],
-            'count_pekerjaan_applied' =>$akumulasi_summary['count_applied'],
-            'count_pekerjaan_rejected'=>$akumulasi_summary['count_rejected'],
-            'count_pekerjaan'         =>$akumulasi_summary['count_pending']+$akumulasi_summary['count_applied']+$akumulasi_summary['count_rejected']
+            'work_area'     =>$summary['items'],
+            'summary_work_area' =>array_merge_without($summary, ['items', 'type'])
         ]);
 
         return response()->json([
@@ -693,7 +679,7 @@ class ReportController extends Controller
         }
 
         //SUCCESS
-        $detail=ProyekReportDetailModel::with("summary")->where("id_proyek_report_detail", $req['id_proyek_report_detail'])->first();
+        $detail=ProyekReportDetailModel::with("created_by")->where("id_proyek_report_detail", $req['id_proyek_report_detail'])->first();
 
         return response()->json([
             'data'          =>$detail
@@ -741,14 +727,15 @@ class ReportController extends Controller
             ],
             'sfi'       =>[
                 "required",
-                function($attr, $value, $fail)use($req){
+                function($attr, $value, $fail)use($req, $login_data){
                     $v=ProyekReportModel::where("id_proyek", $req['id_proyek'])->first();
                     if(is_null($v)){
                         return $fail("id proyek not found");
                     }
 
-                    if(!found_sfi_pekerjaan_work_area($value, $v['work_area'])){
-                        return $fail("sfi pekerjaan not found");
+                    $resp=$login_data['role']=="shipyard"?"shipyard":"all";
+                    if(!found_sfi_pekerjaan_work_area($value, $v['work_area'], $resp)){
+                        return $fail("sfi pekerjaan not found or not allowed");
                     }
                     return true;
                 }
@@ -757,22 +744,10 @@ class ReportController extends Controller
             'progress'  =>"required|numeric|between:0,100",
             'start'     =>"required|date_format:Y-m-d",
             'end'       =>"required|date_format:Y-m-d|after_or_equal:start",
-            'responsible'       =>"required|in:shipowner,shipyard",
-            'persetujuan'       =>[
-                "required",
-                function($attr, $value, $fail)use($login_data){
-                    $in=['pending', 'rejected', 'applied'];
-                    if($login_data['role']=="shipyard"){
-                        $in=['pending'];
-                    }
-
-                    if(!in_array($value, $in)){
-                        return $fail("persetujuan must ".implode(", ", $in));
-                    }
-                    return true;
-                }
-            ],
-            'comment'   =>[Rule::requiredIf(!isset($req['comment']))]
+            'volume'    =>"required|numeric|min:0",
+            'harga_satuan_aktual'=>"required|numeric|min:0",
+            'additional'=>"required|numeric|min:0",
+            'komentar'   =>[Rule::requiredIf(!isset($req['komentar']))]
         ]);
         if($validation->fails()){
             return response()->json([
@@ -801,6 +776,105 @@ class ReportController extends Controller
             $proyek_report=ProyekReportModel::where("id_proyek", $req['id_proyek'])->lockForUpdate()->first();
             $proyek_report->update([
                 'work_area' =>update_report_work_area($proyek_report['work_area'], $login_data, $req)
+            ]);
+        });
+        
+        return response()->json([
+            'status'=>"ok"
+        ]);
+    }
+
+    public function checklist_progress(Request $request, $id)
+    {
+        $login_data=$request['fm__login_data'];
+        $req=$request->all();
+
+        //ROLE AUTHENTICATION
+        if(!in_array($login_data['role'], ['admin', 'shipowner', 'shipyard', 'shipmanager'])){
+            return response()->json([
+                'error' =>"ACCESS_NOT_ALLOWED"
+            ], 403);
+        }
+
+        //VALIDATION
+        $req['id_proyek']=$id;
+        $validation=Validator::make($req, [
+            'id_proyek' =>[
+                "required",
+                function($attr, $value, $fail)use($login_data){
+                    //proyek
+                    $p=ProyekModel::has("report")->where("id_proyek", $value);
+                    //--shipowner
+                    if($login_data['role']=="shipowner"){
+                        $p=$p->whereHas("kapal", function($query)use($login_data){
+                            $query->where("id_user", $login_data['id_user']);
+                        });
+                    }
+                    //--shipyard
+                    if($login_data['role']=="shipyard"){
+                        $p=$p->whereHas("report.tender", function($query)use($login_data){
+                            $query->where("id_user", $login_data['id_user']);
+                        });
+                    }
+                    if($p->count()==0){
+                        return $fail("The selected id proyek is invalid.");
+                    }
+                    return true;
+                }
+            ],
+            'sfi'       =>[
+                "required",
+                function($attr, $value, $fail)use($req, $login_data){
+                    $v=ProyekReportModel::where("id_proyek", $req['id_proyek'])->first();
+                    if(is_null($v)){
+                        return $fail("id proyek not found");
+                    }
+
+                    $resp=$login_data['role']=="shipyard"?"shipyard":"all";
+                    if(!found_sfi_pekerjaan_work_area($value, $v['work_area'], $resp)){
+                        return $fail("sfi pekerjaan not found or not allowed");
+                    }
+                    return true;
+                }
+            ],
+            'type'      =>[
+                "required",
+                "in:shipowner,shipyard",
+                function($attr, $value, $fail)use($login_data){
+                    if($login_data['role']=="shipyard" && $value=="shipowner"){
+                        return $attr("shipyard not allowed update checklist shipowner");
+                    }
+                }
+            ],
+            'checked'   =>"required|boolean"
+        ]);
+        if($validation->fails()){
+            return response()->json([
+                'error' =>"VALIDATION_ERROR",
+                'data'  =>$validation->errors()
+            ], 500);
+        }
+
+        //SUCCESS
+        DB::transaction(function() use($req, $login_data){
+            //pic
+            $summary=ProyekReportModel::where("id_proyek", $req['id_proyek'])->first();
+            $pic=ProyekReportPicModel::where("id_proyek_report", $summary['id_proyek_report'])
+                ->where("id_user", $login_data['id_user']);
+            if($pic->count()>0){
+                $pic->touch();
+            }
+            else{
+                ProyekReportPicModel::create([
+                    'id_proyek_report'  =>$summary['id_proyek_report'],
+                    'id_user'   =>$login_data['id_user']
+                ]);
+            }
+
+            //proyek
+            $proyek_report=ProyekReportModel::where("id_proyek", $req['id_proyek'])->lockForUpdate()->first();
+            $proyek_report->update([
+                'work_area' =>update_report_work_area_checklist($proyek_report['work_area'], $login_data, $req)
             ]);
         });
         

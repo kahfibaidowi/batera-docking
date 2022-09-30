@@ -11,8 +11,8 @@ class ProyekModel extends Model{
     protected $primaryKey="id_proyek";
     protected $fillable=[
         'id_kapal',
+        'id_user',
         'tahun',
-        "nama_proyek",
         "mata_uang",
         "off_hire_start",
         "off_hire_end",
@@ -27,13 +27,6 @@ class ProyekModel extends Model{
         "repair_in_dock_end",
         "repair_in_dock_period",
         "repair_additional_day",
-        "owner_supplies",
-        "owner_services",
-        "owner_class",
-        "owner_other",
-        "owner_cancel_job",
-        "yard_cost",
-        "yard_cancel_job",
         "work_area",
         "status"
     ];
@@ -61,6 +54,10 @@ class ProyekModel extends Model{
      */
     public function kapal(){
         return $this->belongsTo(KapalModel::class, "id_kapal");
+    }
+
+    public function responsible(){
+        return $this->belongsTo(UserModel::class, "id_user");
     }
 
     public function report(){

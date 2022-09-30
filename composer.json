@@ -6,10 +6,10 @@
     "type": "project",
     "require": {
         "php": "^8.0",
+        "barryvdh/laravel-dompdf": "^2.0",
         "firebase/php-jwt": "^6.3",
         "illuminate/mail": "^9.27",
-        "laravel/lumen-framework": "^9.0",
-        "mpdf/mpdf": "^6.1"
+        "laravel/lumen-framework": "^9.0"
     },
     "require-dev": {
         "fakerphp/faker": "^1.9.1",

@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\DB;
 use App\Models\ProyekModel;
+use App\Models\UserModel;
 
 class ProyekController extends Controller
 {
@@ -34,8 +35,18 @@ class ProyekController extends Controller
                     }
                 })
             ],
+            'id_user'   =>[
+                "required",
+                function($attr, $value, $fail){
+                    $v=UserModel::where("id_user", $value)
+                        ->whereIn("role", ['shipyard', 'shipmanager']);
+
+                    if($v->count()==0){
+                        return $fail("The selected id_user is invalid or role not shipyard, shipmanager");
+                    }
+                }
+            ],
             'tahun'     =>"required|integer|digits:4",
-            'nama_proyek'   =>"required",
             'mata_uang'     =>"required",
             'off_hire_start'=>"required|date_format:Y-m-d",
             'off_hire_end'  =>"required|date_format:Y-m-d|after_or_equal:off_hire_start",
@@ -46,14 +57,7 @@ class ProyekController extends Controller
             'repair_end'    =>"required|date_format:Y-m-d|after_or_equal:repair_start",
             'repair_in_dock_start'  =>"required|date_format:Y-m-d|after_or_equal:after_or_equal:repair_start",
             'repair_in_dock_end'    =>"required|date_format:Y-m-d|after_or_equal:repair_in_dock_start|before_or_equal:repair_end",
-            'repair_additional_day' =>"required|integer|min:0",
-            'owner_supplies'    =>"required|numeric|min:0",
-            'owner_services'    =>"required|numeric|min:0",
-            'owner_class'       =>"required|numeric|min:0",
-            'owner_other'       =>"required|numeric|min:0",
-            'owner_cancel_job'  =>"required|numeric|min:0",
-            'yard_cost'         =>"required|numeric|min:0",
-            'yard_cancel_job'   =>"required|numeric|min:0"
+            'repair_additional_day' =>"required|integer|min:0"
         ]);
         if($validation->fails()){
             return response()->json([
@@ -70,8 +74,8 @@ class ProyekController extends Controller
 
             ProyekModel::create([
                 'id_kapal'  =>$req['id_kapal'],
+                'id_user'   =>$req['id_user'],
                 'tahun'     =>$req['tahun'],
-                'nama_proyek'   =>$req['nama_proyek'],
                 'mata_uang'     =>$req['mata_uang'],
                 'off_hire_start'=>$req['off_hire_start'],
                 'off_hire_end'  =>$req['off_hire_end'],
@@ -86,13 +90,6 @@ class ProyekController extends Controller
                 'repair_in_dock_end'    =>$req['repair_in_dock_end'],
                 'repair_in_dock_period' =>$repair_in_dock_period,
                 'repair_additional_day' =>$req['repair_additional_day'],
-                'owner_supplies'    =>$req['owner_supplies'],
-                'owner_services'    =>$req['owner_services'],
-                'owner_class'       =>$req['owner_class'],
-                'owner_other'       =>$req['owner_other'],
-                'owner_cancel_job'  =>$req['owner_cancel_job'],
-                'yard_cost'         =>$req['yard_cost'],
-                'yard_cancel_job'   =>$req['yard_cancel_job'],
                 'status'            =>"draft"
             ]);
         });
@@ -132,8 +129,18 @@ class ProyekController extends Controller
                     return true;
                 }
             ],
+            'id_user'   =>[
+                "required",
+                function($attr, $value, $fail){
+                    $v=UserModel::where("id_user", $value)
+                        ->whereIn("role", ['shipyard', 'shipmanager']);
+
+                    if($v->count()==0){
+                        return $fail("The selected id_user is invalid or role not shipyard, shipmanager");
+                    }
+                }
+            ],
             'tahun'     =>"required|integer|digits:4",
-            'nama_proyek'   =>"required",
             'mata_uang'     =>"required",
             'off_hire_start'=>"required|date_format:Y-m-d",
             'off_hire_end'  =>"required|date_format:Y-m-d|after_or_equal:off_hire_start",
@@ -144,14 +151,7 @@ class ProyekController extends Controller
             'repair_end'    =>"required|date_format:Y-m-d|after_or_equal:repair_start",
             'repair_in_dock_start'  =>"required|date_format:Y-m-d|after_or_equal:after_or_equal:repair_start",
             'repair_in_dock_end'    =>"required|date_format:Y-m-d|after_or_equal:repair_in_dock_start|before_or_equal:repair_end",
-            'repair_additional_day' =>"required|integer|min:0",
-            'owner_supplies'    =>"required|numeric|min:0",
-            'owner_services'    =>"required|numeric|min:0",
-            'owner_class'       =>"required|numeric|min:0",
-            'owner_other'       =>"required|numeric|min:0",
-            'owner_cancel_job'  =>"required|numeric|min:0",
-            'yard_cost'         =>"required|numeric|min:0",
-            'yard_cancel_job'   =>"required|numeric|min:0"
+            'repair_additional_day' =>"required|integer|min:0"
         ]);
         if($validation->fails()){
             return response()->json([
@@ -168,8 +168,8 @@ class ProyekController extends Controller
 
             ProyekModel::where("id_proyek", $req['id_proyek'])
                 ->update([
+                    'id_user'   =>$req['id_user'],
                     'tahun'     =>$req['tahun'],
-                    'nama_proyek'   =>$req['nama_proyek'],
                     'mata_uang'     =>$req['mata_uang'],
                     'off_hire_start'=>$req['off_hire_start'],
                     'off_hire_end'  =>$req['off_hire_end'],
@@ -183,14 +183,7 @@ class ProyekController extends Controller
                     'repair_in_dock_start'  =>$req['repair_in_dock_start'],
                     'repair_in_dock_end'    =>$req['repair_in_dock_end'],
                     'repair_in_dock_period' =>$repair_in_dock_period,
-                    'repair_additional_day' =>$req['repair_additional_day'],
-                    'owner_supplies'    =>$req['owner_supplies'],
-                    'owner_services'    =>$req['owner_services'],
-                    'owner_class'       =>$req['owner_class'],
-                    'owner_other'       =>$req['owner_other'],
-                    'owner_cancel_job'  =>$req['owner_cancel_job'],
-                    'yard_cost'         =>$req['yard_cost'],
-                    'yard_cancel_job'   =>$req['yard_cancel_job']
+                    'repair_additional_day' =>$req['repair_additional_day']
                 ]);
         });
 
@@ -334,7 +327,9 @@ class ProyekController extends Controller
         //SUCCESS
         $proyek=ProyekModel::with("kapal", "kapal.owner", "kapal.perusahaan");
         //q
-        $proyek=$proyek->where("nama_proyek", "ilike", "%".$req['q']."%");
+        $proyek=$proyek->whereHas("kapal", function($query)use($req){
+            $query->where("nama_kapal", "ilike", "%".$req['q']."%");
+        });
         //shipowner
         if($login_data['role']=="shipowner"){
             $proyek=$proyek->withWhereHas("kapal", function($q)use($login_data){
@@ -346,11 +341,16 @@ class ProyekController extends Controller
             ->paginate(trim($req['per_page']))
             ->toArray();
 
+        $data=[];
+        foreach($proyek['data'] as $val){
+            $data[]=array_merge_without($val, ['work_area']);
+        }
+
         return response()->json([
             'first_page'    =>1,
             'current_page'  =>$proyek['current_page'],
             'last_page'     =>$proyek['last_page'],
-            'data'          =>$proyek['data']
+            'data'          =>$data
         ]);
     }
 
@@ -394,9 +394,20 @@ class ProyekController extends Controller
 
         //SUCCESS
         $proyek=ProyekModel::where("id_proyek", $req['id_proyek'])
-            ->with("kapal", "kapal.owner", "kapal.perusahaan")
+            ->with("kapal", "kapal.owner", "kapal.perusahaan", "report")
             ->first()
             ->toArray();
+        
+        $summary_proyek=get_all_summary_work_area($proyek['work_area'], ['total_harga']);
+        $proyek['work_area']=$summary_proyek['items'];
+        $proyek['summary_work_area']=array_merge_without($summary_proyek, ['items', 'type']);
+        $proyek['summary_proyek']=generate_summary_proyek($proyek);
+
+        if(!is_null($proyek['report'])){
+            $summary_report=get_all_summary_work_area($proyek['report']['work_area'], ['total_harga_kontrak']);
+            $proyek['report']['work_area']=$summary_report['items'];
+            $proyek['report']['summary_work_area']=array_merge_without($summary_report, ['items', 'type']);
+        }
 
         return response()->json([
             'data'  =>$proyek
@@ -454,18 +465,16 @@ class ProyekController extends Controller
         $validate_work_area=validation_proyek_work_area($req['work_area']);
         if($validate_work_area['error']){
             return response()->json([
+                'error' =>"VALIDATION_ERROR",
                 'data'  =>$validate_work_area['data']
             ], 500);
         }
-
-        //ADD CREATE_AT AND LAST_UPDATE IN WORK AREA
-        $req['work_area']=add_timestamps_proyek_work_area($req['work_area']);
 
         //SUCCESS
         DB::transaction(function() use($req, $login_data){
             ProyekModel::where("id_proyek", $req['id_proyek'])
                 ->update([
-                    'work_area'         =>$req['work_area']
+                    'work_area'         =>generate_proyek_work_area($req['work_area'])
                 ]);
         });
 

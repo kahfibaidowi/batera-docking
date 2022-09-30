@@ -332,6 +332,12 @@ $router->delete("/tender/{id}/unselect_tender", [
         "auth"
     ]
 ]);
+$router->put("/tender/{id}/work_area", [
+    'uses'=>"TenderController@update_tender_work_area",
+    'middleware'=>[
+        "auth"
+    ]
+]);
 
 //REPORT
 //--proyek summary
@@ -391,6 +397,12 @@ $router->put("/report/proyek/{id}/work_area", [
         "auth"
     ]
 ]);
+$router->put("/report/proyek/{id}/work_area/checklist", [
+    'uses'=>"ReportController@checklist_progress",
+    'middleware'=>[
+        "auth"
+    ]
+]);
 //--proyek summary pic
 $router->get("/report/proyek/{id}/pic", [
     'uses'=>"ReportController@gets_summary_pic",
@@ -405,6 +417,9 @@ $router->get("/tracking", [
     'middleware'=>[
         'auth'
     ]
+]);
+$router->get("/tracking/proyek/{id}/export_pdf", [
+    'uses'=>"TrackingController@export_project_pdf"
 ]);
 
 //PENGATURAN

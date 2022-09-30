@@ -17,7 +17,7 @@ class ProyekReportModel extends Model{
         "proyek_period",
         "master_plan",
         "status",
-        "negara",
+        "state",
         "tipe_proyek",
         "prioritas",
         "partner",

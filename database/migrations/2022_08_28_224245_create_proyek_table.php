@@ -15,9 +15,9 @@ return new class extends Migration
     {
         Schema::create("tbl_proyek", function (Blueprint $table) {
             $table->id("id_proyek");
+            $table->unsignedBigInteger("id_user")->comment("responsible");
             $table->unsignedBigInteger("id_kapal")->comment("referensi kapal");
             $table->unsignedInteger("tahun");
-            $table->text("nama_proyek");
             $table->text("mata_uang");
             $table->date("off_hire_start");
             $table->date("off_hire_end");
@@ -32,13 +32,6 @@ return new class extends Migration
             $table->date("repair_in_dock_end");
             $table->unsignedInteger("repair_in_dock_period");
             $table->unsignedInteger("repair_additional_day");
-            $table->double("owner_supplies");
-            $table->double("owner_services");
-            $table->double("owner_class");
-            $table->double("owner_other");
-            $table->double("owner_cancel_job");
-            $table->double("yard_cost");
-            $table->double("yard_cancel_job");
             $table->text("work_area")->default("[]")->comment("list pekerjaan/work area, data berbentuk json");
             $table->text("status")->comment("status pembuatan proyek [draft/published]");
             $table->timestamps();
@@ -47,6 +40,11 @@ return new class extends Migration
             $table->foreign("id_kapal")
                 ->references("id_kapal")
                 ->on("tbl_kapal")
+                ->onDelete("cascade");
+            
+            $table->foreign("id_user")
+                ->references("id_user")
+                ->on("tbl_users")
                 ->onDelete("cascade");
         });
     }

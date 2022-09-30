@@ -30,7 +30,7 @@ class HomeController extends Controller
         }
 
         //SUCCESS
-        $kapal=KapalModel::with("owner", "perusahaan", "proyek", "proyek.report", "proyek.report.tender");
+        $kapal=KapalModel::with("owner", "perusahaan");
         //shipowner
         if($login_data['role']=="shipowner"){
             $kapal=$kapal->where("id_user", $login_data['id_user']);
@@ -45,15 +45,8 @@ class HomeController extends Controller
         $kapal=$kapal->orderByDesc("id_kapal")
             ->get()->toArray();
 
-        $data=[];
-        foreach($kapal as $val){
-            $data[]=array_merge($val, [
-                'proyek'=>generate_summary_kapal($val, $login_data)
-            ]);
-        }
-
         return response()->json([
-            'data'  =>$data
+            'data'  =>$kapal
         ]);
     }
 
@@ -133,12 +126,18 @@ class HomeController extends Controller
         $validation=Validator::make($req, [
             'id_user'   =>[
                 'required',
-                Rule::exists("App\Models\UserModel")->where(function($query)use($login_data){
+                function($attr, $value, $fail)use($login_data){
+                    $v=UserModel::where("id_user", $value)
+                        ->where("role", "shipowner");
+
                     if($login_data['role']=="shipowner"){
-                        return $query->where("role", "shipowner")->where("id_user", $login_data['id_user']);
+                        $v=$v->where("id_user", $login_data['id_user']);
                     }
-                    return $query->where("role", "shipowner");
-                }),
+
+                    if(is_null($v->first())){
+                        return $fail("The selected id user is invalid or role not shipowner");
+                    }
+                },
                 function($attr, $value, $fail){
                     $v=UserShipownerModel::where("id_user", $value);
                     if($v->count()>0){

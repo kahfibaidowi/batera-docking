@@ -22,7 +22,7 @@ return new class extends Migration
             $table->unsignedInteger("proyek_period")->default(0);
             $table->text("master_plan");
             $table->text("status");
-            $table->text("negara");
+            $table->text("state");
             $table->text("tipe_proyek");
             $table->text("prioritas");
             $table->text("partner");
