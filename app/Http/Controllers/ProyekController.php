@@ -211,6 +211,7 @@ class ProyekController extends Controller
                 "required",
                 function($attr, $value, $fail)use($login_data){
                     $v=ProyekModel::where("id_proyek", $value)->where("status", "draft");
+                    //shipowner
                     if($login_data['role']=="shipowner"){
                         $v=$v->whereHas("kapal", function($q)use($login_data){
                             $q->where("id_user", $login_data['id_user']);
@@ -219,9 +220,7 @@ class ProyekController extends Controller
                     if($v->count()==0){
                         return $fail("The selected id proyek is invalid or proyek is published.");
                     }
-                    if(count($v->first()['work_area'])==0){
-                        return $fail("Work area not found.");
-                    }
+
                     return true;
                 }
             ]
@@ -394,20 +393,9 @@ class ProyekController extends Controller
 
         //SUCCESS
         $proyek=ProyekModel::where("id_proyek", $req['id_proyek'])
-            ->with("kapal", "kapal.owner", "kapal.perusahaan", "report")
+            ->with("kapal", "kapal.owner", "kapal.perusahaan", "report", "report.tender")
             ->first()
             ->toArray();
-        
-        $summary_proyek=get_all_summary_work_area($proyek['work_area'], ['total_harga']);
-        $proyek['work_area']=$summary_proyek['items'];
-        $proyek['summary_work_area']=array_merge_without($summary_proyek, ['items', 'type']);
-        $proyek['summary_proyek']=generate_summary_proyek($proyek);
-
-        if(!is_null($proyek['report'])){
-            $summary_report=get_all_summary_work_area($proyek['report']['work_area'], ['total_harga_kontrak']);
-            $proyek['report']['work_area']=$summary_report['items'];
-            $proyek['report']['summary_work_area']=array_merge_without($summary_report, ['items', 'type']);
-        }
 
         return response()->json([
             'data'  =>$proyek
@@ -445,14 +433,7 @@ class ProyekController extends Controller
                     return true;
                 }
             ],
-            'work_area'         =>[
-                Rule::requiredIf(function()use($req){
-                    if(!isset($req['work_area'])) return true;
-                    if(!is_array($req['work_area'])) return true;
-                }),
-                'array',
-                'min:0'
-            ]
+            'work_area' =>"required"
         ]);
         if($validation->fails()){
             return response()->json([
@@ -461,20 +442,11 @@ class ProyekController extends Controller
             ], 500);
         }
 
-        //VALIDATION DETAIL FOR WORK AREA
-        $validate_work_area=validation_proyek_work_area($req['work_area']);
-        if($validate_work_area['error']){
-            return response()->json([
-                'error' =>"VALIDATION_ERROR",
-                'data'  =>$validate_work_area['data']
-            ], 500);
-        }
-
         //SUCCESS
         DB::transaction(function() use($req, $login_data){
             ProyekModel::where("id_proyek", $req['id_proyek'])
                 ->update([
-                    'work_area' =>generate_proyek_work_area($req['work_area'])
+                    'work_area' =>$req['work_area']
                 ]);
         });
 

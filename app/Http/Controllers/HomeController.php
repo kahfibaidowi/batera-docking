@@ -104,9 +104,7 @@ class HomeController extends Controller
             ->first()->toArray();
 
         return response()->json([
-            'data'  =>array_merge($kapal, [
-                'proyek'=>generate_summary_kapal($kapal, $login_data)
-            ])
+            'data'  =>$kapal
         ]);
     }
 

@@ -53,6 +53,16 @@ class ReportController extends Controller
                     return true;
                 }
             ],
+            'summary_detail'=>[
+                Rule::requiredIf(!isset($req['summary_detail']))
+            ],
+            'approved_by'   =>[
+                Rule::requiredIf(!isset($req['approved_by']))
+            ],
+            'approved'      =>[
+                Rule::requiredIf(!isset($req['approved'])),
+                "date_format:Y-m-d"
+            ],
             'proyek_start'  =>"required|date_format:Y-m-d",
             'proyek_end'    =>"required|date_format:Y-m-d|after_or_equal:proyek_start",
             'tipe_proyek'   =>[
@@ -245,20 +255,8 @@ class ReportController extends Controller
             ->first()
             ->toArray();
 
-        $general_diskon=($proyek_summary['tender']['general_diskon_persen']/100)*$proyek_summary['tender']['yard_total_quote'];
-        $after_diskon=$proyek_summary['tender']['yard_total_quote']-$general_diskon;
-
-        $summary=get_all_summary_work_area($proyek_summary['work_area'], [
-            'total_harga_aktual', 
-            'progress',
-            'date_min_max',
-            'last_change'
-        ]);
         $data=array_merge_without($proyek_summary, ['tender'], [
-            'estimate_cost' =>$after_diskon,
-            'proyek'        =>array_merge_without($proyek_summary['proyek'], ['work_area'], []),
-            'work_area'     =>$summary['items'],
-            'summary_work_area' =>array_merge_without($summary, ['items', 'type'])
+            'proyek'=>array_merge_without($proyek_summary['proyek'], ['work_area'])
         ]);
 
         return response()->json([
@@ -683,7 +681,7 @@ class ReportController extends Controller
     }
 
     //WORK AREA
-    public function update_progress(Request $request, $id)
+    public function update_report_work_area(Request $request, $id)
     {
         $login_data=$request['fm__login_data'];
         $req=$request->all();
@@ -698,7 +696,7 @@ class ReportController extends Controller
         //VALIDATION
         $req['id_proyek']=$id;
         $validation=Validator::make($req, [
-            'id_proyek' =>[
+            'id_proyek'  =>[
                 "required",
                 function($attr, $value, $fail)use($login_data){
                     //proyek
@@ -721,126 +719,7 @@ class ReportController extends Controller
                     return true;
                 }
             ],
-            'work_area'         =>[
-                Rule::requiredIf(function()use($req){
-                    if(!isset($req['work_area'])) return true;
-                    if(!is_array($req['work_area'])) return true;
-                }),
-                'array',
-                'min:0'
-            ]
-        ]);
-        if($validation->fails()){
-            return response()->json([
-                'error' =>"VALIDATION_ERROR",
-                'data'  =>$validation->errors()
-            ], 500);
-        }
-
-        //VALIDATION DETAIL FOR WORK AREA
-        $report=ProyekReportModel::with("tender")->where("id_proyek", $req['id_proyek'])->first();
-        $validate_work_area=validation_report_work_area($req['work_area'], $report['tender']['work_area']);
-        if($validate_work_area['error']){
-            return response()->json([
-                'error' =>"VALIDATION_ERROR",
-                'data'  =>$validate_work_area['data']
-            ], 500);
-        }
-
-        //SUCCESS
-        DB::transaction(function() use($req, $login_data, $report){
-            //pic
-            $summary=ProyekReportModel::where("id_proyek", $req['id_proyek'])->first();
-            $pic=ProyekReportPicModel::where("id_proyek_report", $summary['id_proyek_report'])
-                ->where("id_user", $login_data['id_user']);
-            if($pic->count()>0){
-                $pic->touch();
-            }
-            else{
-                ProyekReportPicModel::create([
-                    'id_proyek_report'  =>$summary['id_proyek_report'],
-                    'id_user'   =>$login_data['id_user']
-                ]);
-            }
-
-            //proyek
-            $proyek_report=ProyekReportModel::with("tender")->where("id_proyek", $req['id_proyek'])->lockForUpdate()->first();
-            $data=generate_report_work_area($req['work_area'], $proyek_report['tender']['work_area'], $proyek_report['work_area'], $login_data);
-            $proyek_report->update([
-                'work_area' =>$data['work_area'],
-                'work_area_update_history'  =>array_merge($data['update_history'], $proyek_report['work_area_update_history'])
-            ]);
-        });
-        
-        return response()->json([
-            'status'=>"ok",
-            'data'  =>$a
-        ]);
-    }
-
-    public function checklist_progress(Request $request, $id)
-    {
-        $login_data=$request['fm__login_data'];
-        $req=$request->all();
-
-        //ROLE AUTHENTICATION
-        if(!in_array($login_data['role'], ['admin', 'shipowner', 'shipyard', 'shipmanager'])){
-            return response()->json([
-                'error' =>"ACCESS_NOT_ALLOWED"
-            ], 403);
-        }
-
-        //VALIDATION
-        $req['id_proyek']=$id;
-        $validation=Validator::make($req, [
-            'id_proyek' =>[
-                "required",
-                function($attr, $value, $fail)use($login_data){
-                    //proyek
-                    $p=ProyekModel::has("report")->where("id_proyek", $value);
-                    //--shipowner
-                    if($login_data['role']=="shipowner"){
-                        $p=$p->whereHas("kapal", function($query)use($login_data){
-                            $query->where("id_user", $login_data['id_user']);
-                        });
-                    }
-                    //--shipyard
-                    if($login_data['role']=="shipyard"){
-                        $p=$p->whereHas("report.tender", function($query)use($login_data){
-                            $query->where("id_user", $login_data['id_user']);
-                        });
-                    }
-                    if($p->count()==0){
-                        return $fail("The selected id proyek is invalid.");
-                    }
-                    return true;
-                }
-            ],
-            'sfi'       =>[
-                "required",
-                function($attr, $value, $fail)use($req, $login_data){
-                    $v=ProyekReportModel::where("id_proyek", $req['id_proyek'])->first();
-                    if(is_null($v)){
-                        return $fail("id proyek not found");
-                    }
-
-                    $resp=$login_data['role']=="shipyard"?"shipyard":"all";
-                    if(!found_sfi_pekerjaan_work_area($value, $v['work_area'], $resp)){
-                        return $fail("sfi pekerjaan not found or not allowed");
-                    }
-                    return true;
-                }
-            ],
-            'type'      =>[
-                "required",
-                "in:shipowner,shipyard",
-                function($attr, $value, $fail)use($login_data){
-                    if($login_data['role']=="shipyard" && $value=="shipowner"){
-                        return $attr("shipyard not allowed update checklist shipowner");
-                    }
-                }
-            ],
-            'checked'   =>"required|boolean"
+            'work_area' =>"required"
         ]);
         if($validation->fails()){
             return response()->json([
@@ -851,27 +730,28 @@ class ReportController extends Controller
 
         //SUCCESS
         DB::transaction(function() use($req, $login_data){
+            $proyek_report=ProyekReportModel::where("id_proyek", $req['id_proyek'])->first();
+
+            //report
+            ProyekReportModel::where("id_proyek", $req['id_proyek'])
+                ->update([
+                    'work_area' =>$req['work_area']
+                ]);
+            
             //pic
-            $summary=ProyekReportModel::where("id_proyek", $req['id_proyek'])->first();
-            $pic=ProyekReportPicModel::where("id_proyek_report", $summary['id_proyek_report'])
+            $pic=ProyekReportPicModel::where("id_proyek_report", $proyek_report['id_proyek_report'])
                 ->where("id_user", $login_data['id_user']);
             if($pic->count()>0){
                 $pic->touch();
             }
             else{
                 ProyekReportPicModel::create([
-                    'id_proyek_report'  =>$summary['id_proyek_report'],
+                    'id_proyek_report'  =>$proyek_report['id_proyek_report'],
                     'id_user'   =>$login_data['id_user']
                 ]);
             }
-
-            //proyek
-            $proyek_report=ProyekReportModel::where("id_proyek", $req['id_proyek'])->lockForUpdate()->first();
-            $proyek_report->update([
-                'work_area' =>update_report_work_area_checklist($proyek_report['work_area'], $login_data, $req)
-            ]);
         });
-        
+
         return response()->json([
             'status'=>"ok"
         ]);

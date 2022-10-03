@@ -31,7 +31,7 @@ class ProyekModel extends Model{
         "status"
     ];
 
-    protected $casts = [
+    protected $casts=[
         'work_area' =>'array'
     ];
 

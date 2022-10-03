@@ -30,8 +30,7 @@ return new class extends Migration
             $table->text("prioritas");
             $table->text("partner");
             $table->text("deskripsi");
-            $table->text("work_area")->default("[]")->comment("list pekerjaan/work area, data berbentuk json");
-            $table->text("work_area_update_history")->default("[]");
+            $table->text("work_area")->nullable()->comment("list pekerjaan/work area, data berbentuk json");
             $table->timestamps();
 
             //fk

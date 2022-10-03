@@ -32,7 +32,7 @@ return new class extends Migration
             $table->date("repair_in_dock_end");
             $table->unsignedInteger("repair_in_dock_period");
             $table->unsignedInteger("repair_additional_day");
-            $table->text("work_area")->default("[]")->comment("list pekerjaan/work area, data berbentuk json");
+            $table->text("work_area")->nullable()->comment("list pekerjaan/work area, data berbentuk json");
             $table->text("status")->comment("status pembuatan proyek [draft/published]");
             $table->timestamps();
 

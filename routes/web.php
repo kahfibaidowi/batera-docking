@@ -240,12 +240,6 @@ $router->post("/proyek", [
         'auth'
     ]
 ]);
-$router->put("/proyek/{id}/work_area", [
-    'uses'=>"ProyekController@update_proyek_work_area",
-    'middleware'=>[
-        "auth"
-    ]
-]);
 $router->put("/proyek/{id}", [
     'uses'=>"ProyekController@update_proyek",
     'middleware'=>[
@@ -274,6 +268,13 @@ $router->get("/proyek/{id}", [
     'uses'=>"ProyekController@get_proyek",
     'middleware'=>[
         'auth'
+    ]
+]);
+//--work area
+$router->put("/proyek/{id}/work_area", [
+    'uses'=>"ProyekController@update_proyek_work_area",
+    'middleware'=>[
+        "auth"
     ]
 ]);
 
@@ -398,13 +399,7 @@ $router->get("/report/detail/{id}", [
 ]);
 //--proyek summary work area
 $router->put("/report/proyek/{id}/work_area", [
-    'uses'=>"ReportController@update_progress",
-    'middleware'=>[
-        "auth"
-    ]
-]);
-$router->put("/report/proyek/{id}/work_area/checklist", [
-    'uses'=>"ReportController@checklist_progress",
+    'uses'=>"ReportController@update_report_work_area",
     'middleware'=>[
         "auth"
     ]
