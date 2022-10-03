@@ -33,7 +33,7 @@ function is_image_file($string)
         $file_show=file_get_contents($upload_path."/".$string);
 
         $extensions=['image/jpeg', 'image/jpg', 'image/png'];
-        if(in_array($file_info->buffer($file_show), $extensions)){
+        if(in_array($file_info->buffer($file_show), $extensions, true)){
             return true;
         }
         return false;
@@ -58,7 +58,7 @@ function is_document_file($string)
             'application/vnd.ms-excel',
             'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
         ];
-        if(in_array($file_info->buffer($file_show), $extensions)){
+        if(in_array($file_info->buffer($file_show), $extensions, true)){
             return true;
         }
         return false;
@@ -252,53 +252,87 @@ function generate_summary_proyek($proyek){
  * WORK AREA
  *-----------------------------------------------------------------------
  */
-//check sfi in work area
-function recursive_found_sfi_pekerjaan_work_area($sfi, $item, &$found_sfi, $resp){
-    if($item['type']=="kategori"){
-        $data=[];
-        foreach($item['items'] as $work){
-            if(!$found_sfi){
-                recursive_found_sfi_pekerjaan_work_area($sfi, $work, $found_sfi, $resp);
-            }
-            else{
-                break;
-            }
-        }
-
-        return;
+//get dept
+function get_dept($resp){
+    if($resp=="shipowner"){
+        return "MD";
     }
-    elseif($item['type']=="pekerjaan"){
-        if(trim($item['sfi'])==trim($sfi)){
-            if($resp=="shipyard"){
-                if($item['responsible']=="shipyard") $found_sfi=true;
-            }
-            if($resp=="shipowner"){
-                if($item['responsible']=="shipowner") $found_sfi=true;
-            }
-            if($resp=="all"){
-                $found_sfi=true;
-            }
-        }
-        return;
+    elseif($resp=="shipyard"){
+        return "CM";
     }
 }
-function found_sfi_pekerjaan_work_area($sfi_search, $work_area, $resp){
-    //var
-    $found=false;
+//found sfi in list
+function found_sfi_work_area($search_work_area=[], $refs_work_area=[]){
+    $search_array=get_all_sfi_work_area($search_work_area);
+    $refs_array=get_all_sfi_work_area($refs_work_area);
 
-    //function
+    $count=0;
+    foreach(array_unique($search_array) as $val){
+        if(in_array($val, $refs_array, true)) $count++;
+    }
 
-    $data=[];
-    foreach($work_area as $work){
-        if(!$found){
-            recursive_found_sfi_pekerjaan_work_area($sfi_search, $work, $found, $resp);
+    if($count==count($refs_array)){
+        return true;
+    }
+    return false;
+}
+//get all sfi in work area
+function recursive_get_all_sfi_work_area($item, &$sfi){
+    if($item['type']=="kategori"){
+        $sfi[]=trim($item['sfi']);
+        foreach($item['items'] as $work){
+            recursive_get_all_sfi_work_area($work, $sfi);
         }
-        else{
+    }
+    elseif($item['type']=="pekerjaan"){
+        $sfi[]=trim($item['sfi']);
+    }
+}
+function get_all_sfi_work_area($work_area){
+    $sfi=[];
+
+    //process
+    foreach($work_area as $work){
+        recursive_get_all_sfi_work_area($work, $sfi);
+    }
+
+    //return
+    return $sfi;
+}
+//get all work area
+function recursive_get_all_work_area($item, &$list){
+    if($item['type']=="kategori"){
+        $list[]=array_merge_without($item, ['items']);
+        foreach($item['items'] as $work){
+            recursive_get_all_work_area($work, $list);
+        }
+    }
+    elseif($item['type']=="pekerjaan"){
+        $list[]=$item;
+    }
+}
+function get_all_work_area($work_area){
+    $list=[];
+
+    //process
+    foreach($work_area as $work){
+        recursive_get_all_work_area($work, $list);
+    }
+
+    //return
+    return $list;
+}
+//find work in work area
+function find_work($search_sfi, $work_area=[]){
+    $work=[];
+    foreach($work_area as $val){
+        if(trim($search_sfi)==trim($val['sfi'])){
+            $work=$val;
             break;
         }
     }
 
-    return $found;
+    return $work;
 }
 //summary
 function get_all_summary_work_area($work_area, $added_columns){
@@ -729,7 +763,7 @@ function recursive_validation_proyek_work_area($item, &$err_status, $nest, &$id_
             "required",
             function($attr, $value, $fail)use($id_list){
                 if(in_array(trim($value), $id_list, true)){
-                    return $fail("sfi must unique ".trim($value)." ". implode("|", $id_list));
+                    return $fail("sfi must unique > ".trim($value));
                 }
                 return true;
             }
@@ -801,6 +835,41 @@ function recursive_validation_proyek_work_area($item, &$err_status, $nest, &$id_
                     if(!isset($item['catatan'])) return true;
                 }
             })
+        ],
+        'prioritas' =>[
+            Rule::requiredIf(function()use($item){
+                if(!isset($item['type'])) return true;
+                if($item['type']=="pekerjaan") return true;
+            }),
+            Rule::in(["critical", "high", "medium", "low"])
+        ],
+        'created_at'=>[
+            Rule::requiredIf(function()use($item){
+                if(!isset($item['type'])) return true;
+                if($item['type']=="pekerjaan") return true;
+            }),
+            function($attr, $value, $fail){
+                try {
+                    $date=new DateTime($value);
+                }
+                catch(Exception $exception){
+                    return $fail($attr." must datetime");
+                }
+            }
+        ],
+        'updated_at'=>[
+            Rule::requiredIf(function()use($item){
+                if(!isset($item['type'])) return true;
+                if($item['type']=="pekerjaan") return true;
+            }),
+            function($attr, $value, $fail){
+                try {
+                    $date=new DateTime($value);
+                }
+                catch(Exception $exception){
+                    return $fail($attr." must datetime");
+                }
+            }
         ]
     ]);
     if($validation->fails()){
@@ -838,19 +907,11 @@ function validation_proyek_work_area($work_area){
     ];
 }
 //generate work area from input
-function get_dept($resp){
-    if($resp=="shipowner"){
-        return "MD";
-    }
-    elseif($resp=="shipyard"){
-        return "CM";
-    }
-}
-function recursive_generate_proyek_work_area($item, $created_at, $updated_at){
+function recursive_generate_proyek_work_area($item){
     if($item['type']=="kategori"){
         $data=[];
         foreach($item['items'] as $work){
-            $data[]=recursive_generate_proyek_work_area($work, $created_at, $updated_at);
+            $data[]=recursive_generate_proyek_work_area($work);
         }
 
         return array_merge($item, [
@@ -863,68 +924,50 @@ function recursive_generate_proyek_work_area($item, $created_at, $updated_at){
 
         $data['departemen']=get_dept($item['responsible']);
         $data['total_harga']=$item['volume']*$item['harga_satuan'];
-        $data['updated_at']=$updated_at;
-        if(!isset($item['created_at'])){
-            $data['created_at']=$created_at;
-        }
+        $data['created_at']=with_timezone($item['created_at']);
+        $data['updated_at']=with_timezone($item['updated_at']);
         
         //return
         return array_merge($item, $data);
     }
 }
 function generate_proyek_work_area($work_area){
-    //params
-    $created_at=with_timezone(date("Y-m-d H:i:s"));
-    $updated_at=with_timezone(date("Y-m-d H:i:s"));
-
     //process
     $data=[];
     foreach($work_area as $work){
-        $data[]=recursive_generate_proyek_work_area($work, $created_at, $updated_at);
+        $data[]=recursive_generate_proyek_work_area($work);
     }
 
     //return
     return $data;
 }
 //owner cost
-function recursive_get_owner_cost($work){
+function get_owner_cost($work_area){
+    $work_area=get_all_work_area($work_area);
     $cost=0;
 
-    if($work['type']=="pekerjaan"){
-        if($work['responsible']=="shipowner"){
-            $cost+=$work['volume']+$work['harga_satuan'];
-        }
-    }
-    if($work['type']=="kategori"){
-        foreach($work['items'] as $item){
-            $cost+=recursive_get_owner_cost($item);
+    //script
+    foreach($work_area as $work){
+        if($work['type']=="pekerjaan"){
+            if($work['responsible']=="shipowner"){
+                $cost+=$work['volume']+$work['harga_satuan'];
+            }
         }
     }
 
     return $cost;
-}
-function get_owner_cost($work_area){
-    //function recursive
-
-    //script
-    $owner_cost=0;
-    foreach($work_area as $work){
-        $owner_cost+=recursive_get_owner_cost($work);
-    }
-
-    return $owner_cost;
 }
 
 /*-----------------------------------------------------------------------
  * TENDER
  *-----------------------------------------------------------------------
  */
-//generate work area tender
-function recursive_generate_tender_work_area($item, $created_at, $updated_at){
+//generate work area tender from proyek
+function recursive_generate_tender_work_area_from_proyek($item, $created_at, $updated_at){
     if($item['type']=="kategori"){
         $data=[];
         foreach($item['items'] as $work){
-            $data[]=recursive_generate_tender_work_area($work, $created_at, $updated_at);
+            $data[]=recursive_generate_tender_work_area_from_proyek($work, $created_at, $updated_at);
         }
 
         return array_merge($item, [
@@ -935,19 +978,17 @@ function recursive_generate_tender_work_area($item, $created_at, $updated_at){
         //params
         $data=[];
 
-        $data['volume_budget']=$item['volume'];
-        $data['harga_satuan_budget']=$item['harga_satuan'];
-        $data['total_harga_budget']=$item['volume']*$item['harga_satuan'];
         $data['harga_satuan_kontrak']=$item['harga_satuan'];
         $data['total_harga_kontrak']=$item['volume']*$item['harga_satuan'];
         $data['created_at']=$created_at;
         $data['updated_at']=$updated_at;
+        $data['removable']=false;
         
         //return
-        return array_merge_without($item, ['harga_satuan'], $data);
+        return array_merge_without($item, ['harga_satuan', 'total_harga'], $data);
     }
 }
-function generate_tender_work_area($work_area){
+function generate_tender_work_area_from_proyek($work_area){
     //params
     $created_at=with_timezone(date("Y-m-d H:i:s"));
     $updated_at=with_timezone(date("Y-m-d H:i:s"));
@@ -955,64 +996,233 @@ function generate_tender_work_area($work_area){
     //process
     $data=[];
     foreach($work_area as $work){
-        $data[]=recursive_generate_tender_work_area($work, $created_at, $updated_at);
+        $data[]=recursive_generate_tender_work_area_from_proyek($work, $created_at, $updated_at);
     }
 
     //return
     return $data;
 }
-//update tender work area
-function recursive_update_tender_work_area($item, $data_edit){
+//validation work area tender
+function recursive_validation_tender_work_area($item, &$err_status, $nest, &$id_list){
+    $error=[];
+
+    //max 4 nested
+    if($nest>4){
+        $err_status=true;
+        return ['items'=>['max 4 nested']];
+    }
+
+    //validation
+    $validation=Validator::make($item, [
+        'sfi'       =>[
+            "required",
+            function($attr, $value, $fail)use($id_list){
+                if(in_array(trim($value), $id_list, true)){
+                    return $fail("sfi must unique > ".trim($value));
+                }
+                return true;
+            }
+        ],
+        'pekerjaan' =>"required",
+        'type'      =>"required|in:kategori,pekerjaan",
+        'items'     =>[
+            Rule::requiredIf(function()use($item){
+                if(!isset($item['type'])) return true;
+                if($item['type']=="kategori") return true;
+            }),
+            'array'
+        ],
+        'start'     =>[
+            Rule::requiredIf(function()use($item){
+                if(!isset($item['type'])) return true;
+                if($item['type']=="pekerjaan") return true;
+            }),
+            'date_format:Y-m-d'
+        ],
+        'end'       =>[
+            Rule::requiredIf(function()use($item){
+                if(!isset($item['type'])) return true;
+                if($item['type']=="pekerjaan") return true;
+            }),
+            'date_format:Y-m-d',
+            'after_or_equal:start'
+        ],
+        'responsible'=>[
+            Rule::requiredIf(function()use($item){
+                if(!isset($item['type'])) return true;
+                if($item['type']=="pekerjaan") return true;
+            }),
+            'in:shipowner,shipyard'
+        ],
+        'volume'    =>[
+            Rule::requiredIf(function()use($item){
+                if(!isset($item['type'])) return true;
+                if($item['type']=="pekerjaan") return true;
+            }),
+            'numeric',
+            'min:0'
+        ],
+        'satuan'    =>[
+            Rule::requiredIf(function()use($item){
+                if(!isset($item['type'])) return true;
+                if($item['type']=="pekerjaan") return true;
+            })
+        ],
+        'harga_satuan_kontrak'=>[
+            Rule::requiredIf(function()use($item){
+                if(!isset($item['type'])) return true;
+                if($item['type']=="pekerjaan") return true;
+            }),
+            'numeric',
+            'min:0'
+        ],
+        'kategori'  =>[
+            Rule::requiredIf(function()use($item){
+                if(!isset($item['type'])) return true;
+                if($item['type']=="pekerjaan") return true;
+            }),
+            Rule::in(["supplies", "services", "class", "others", "yard_cost", "yard_canceled_jobs"])
+        ],
+        'catatan'   =>[
+            Rule::requiredIf(function()use($item){
+                if(!isset($item['type'])) return true;
+                if($item['type']=="pekerjaan"){
+                    if(!isset($item['catatan'])) return true;
+                }
+            })
+        ],
+        'prioritas' =>[
+            Rule::requiredIf(function()use($item){
+                if(!isset($item['type'])) return true;
+                if($item['type']=="pekerjaan") return true;
+            }),
+            Rule::in(["critical", "high", "medium", "low"])
+        ],
+        'created_at'=>[
+            Rule::requiredIf(function()use($item){
+                if(!isset($item['type'])) return true;
+                if($item['type']=="pekerjaan") return true;
+            }),
+            function($attr, $value, $fail){
+                try {
+                    $date=new DateTime($value);
+                }
+                catch(Exception $exception){
+                    return $fail($attr." must datetime");
+                }
+            }
+        ],
+        'updated_at'=>[
+            Rule::requiredIf(function()use($item){
+                if(!isset($item['type'])) return true;
+                if($item['type']=="pekerjaan") return true;
+            }),
+            function($attr, $value, $fail){
+                try {
+                    $date=new DateTime($value);
+                }
+                catch(Exception $exception){
+                    return $fail($attr." must datetime");
+                }
+            }
+        ]
+    ]);
+    if($validation->fails()){
+        $err_status=true;
+        return $validation->errors();
+    }
+    
+    //add sfi for unique
+    $id_list[]=trim($item['sfi']);
+
+    //next
+    if($item['type']=="kategori"){
+        foreach($item['items'] as $work){
+            $error[]=recursive_validation_tender_work_area($work, $err_status, $nest+1, $id_list);
+        }
+    }
+
+    return $error;
+}
+function validation_tender_work_area($work_area, $work_area_proyek){
+    //error data
+    $sfi_list=[];
+    $error=[];
+    $error_status=false;
+
+    //code
+    if(!found_sfi_work_area($work_area, $work_area_proyek)){
+        $error_status=true;
+        $error=[
+            'work_area' =>["multiple sfi missing reference in proyek"]
+        ];
+    }
+    else{
+        foreach($work_area as $work){
+            $error[]=recursive_validation_tender_work_area($work, $error_status, 0, $sfi_list);
+        }
+    }
+
+    //execute
+    return [
+        'error' =>$error_status,
+        'data'  =>$error
+    ];
+}
+//generate work area tender from input
+function recursive_generate_tender_work_area($item, $sfi_proyek, $work_area_proyek){
     if($item['type']=="kategori"){
         $data=[];
         foreach($item['items'] as $work){
-            $data[]=recursive_update_tender_work_area($work, $data_edit);
+            $data[]=recursive_generate_tender_work_area($work, $sfi_proyek, $work_area_proyek);
         }
 
         return array_merge($item, [
-            'items' =>$data
+            'items' =>$data,
+            'removable' =>in_array(trim($item['sfi']), $sfi_proyek, true)?false:true
         ]);
     }
     elseif($item['type']=="pekerjaan"){
-        if(trim($item['sfi'])==trim($data_edit['sfi'])){
-            //params
-            $updated_at=with_timezone(date("Y-m-d H:i:s"));
+        //params
+        $data=[];
 
-            //data
-            $new_data=[
-                'start'     =>$data_edit['start'],
-                'end'       =>$data_edit['end'],
-                'volume'    =>$data_edit['volume'],
-                'harga_satuan_kontrak'  =>$data_edit['harga_satuan_kontrak'],
-                'total_harga_kontrak'   =>$data_edit['volume']*$data_edit['harga_satuan_kontrak'],
-                'updated_at'=>$updated_at
-            ];
+        $data['volume']=$item['volume'];
+        $data['harga_satuan_kontrak']=$item['harga_satuan_kontrak'];
+        $data['total_harga_kontrak']=$item['volume']*$item['harga_satuan_kontrak'];
+        $data['created_at']=with_timezone($item['created_at']);
+        $data['updated_at']=with_timezone($item['updated_at']);
+        $data['removable']=in_array(trim($item['sfi']), $sfi_proyek, true)?false:true;
 
-            //return
-            return array_merge($item, $new_data);
-        }
-        return $item;
+        //return
+        return array_merge($item, $data);
     }
 }
-function update_tender_work_area($work_area, $edit){
+function generate_tender_work_area($work_area, $work_area_proyek){
+    //params
+    $sfi_proyek=get_all_sfi_work_area($work_area_proyek);
+    $work_area_proyek=get_all_work_area($work_area_proyek);
+
+    //process
     $data=[];
     foreach($work_area as $work){
-        $data[]=recursive_update_tender_work_area($work, $edit);
+        $data[]=recursive_generate_tender_work_area($work, $sfi_proyek, $work_area_proyek);
     }
 
+    //return
     return $data;
 }
+
 
 /*-----------------------------------------------------------------------
  * REPORT PROJECT
  *-----------------------------------------------------------------------
  */
 //generate report work area from tender
-function recursive_generate_report_work_area($item, $created_at, $updated_at){
+function recursive_generate_report_work_area_from_tender($item, $created_at, $updated_at){
     if($item['type']=="kategori"){
         $data=[];
         foreach($item['items'] as $work){
-            $data[]=recursive_generate_report_work_area($work, $created_at, $updated_at);
+            $data[]=recursive_generate_report_work_area_from_tender($work, $created_at, $updated_at);
         }
 
         return array_merge($item, [
@@ -1028,21 +1238,18 @@ function recursive_generate_report_work_area($item, $created_at, $updated_at){
         $data['approved_shipowner']=false;
         $data['approved_shipyard']=false;
         $data['volume']=0;
-        $data['volume_kontrak']=$item['volume'];
         $data['harga_satuan_aktual']=$item['harga_satuan_kontrak'];
         $data['total_harga_aktual']=0;
-        $data['additional']=0;
-        $data['total_harga_aktual_plus_additional']=0;
         $data['komentar']="";
-        $data['update_history']=[];
         $data['created_at']=$created_at;
         $data['updated_at']=$updated_at;
+        $data['removable']=false;
         
         //return
-        return array_merge($item, $data);
+        return array_merge_without($item, ['harga_satuan_kontrak', 'total_harga_kontrak'], $data);
     }
 }
-function generate_report_work_area($work_area){
+function generate_report_work_area_from_tender($work_area){
     //params
     $created_at=with_timezone(date("Y-m-d H:i:s"));
     $updated_at=with_timezone(date("Y-m-d H:i:s"));
@@ -1050,69 +1257,282 @@ function generate_report_work_area($work_area){
     //process
     $data=[];
     foreach($work_area as $work){
-        $data[]=recursive_generate_report_work_area($work, $created_at, $updated_at);
+        $data[]=recursive_generate_report_work_area_from_tender($work, $created_at, $updated_at);
     }
 
     //return
     return $data;
 }
-//update report work area
-function recursive_update_report_work_area($item, $login_data, $data_edit){
+//validation work area report
+function recursive_validation_report_work_area($item, &$err_status, $nest, &$id_list){
+    $error=[];
+
+    //max 4 nested
+    if($nest>4){
+        $err_status=true;
+        return ['items'=>['max 4 nested']];
+    }
+
+    //validation
+    $validation=Validator::make($item, [
+        'sfi'       =>[
+            "required",
+            function($attr, $value, $fail)use($id_list){
+                if(in_array(trim($value), $id_list, true)){
+                    return $fail("sfi must unique > ".trim($value));
+                }
+                return true;
+            }
+        ],
+        'pekerjaan' =>"required",
+        'type'      =>"required|in:kategori,pekerjaan",
+        'items'     =>[
+            Rule::requiredIf(function()use($item){
+                if(!isset($item['type'])) return true;
+                if($item['type']=="kategori") return true;
+            }),
+            'array'
+        ],
+        'start'     =>[
+            Rule::requiredIf(function()use($item){
+                if(!isset($item['type'])) return true;
+                if($item['type']=="pekerjaan") return true;
+            }),
+            'date_format:Y-m-d'
+        ],
+        'end'       =>[
+            Rule::requiredIf(function()use($item){
+                if(!isset($item['type'])) return true;
+                if($item['type']=="pekerjaan") return true;
+            }),
+            'date_format:Y-m-d',
+            'after_or_equal:start'
+        ],
+        'responsible'=>[
+            Rule::requiredIf(function()use($item){
+                if(!isset($item['type'])) return true;
+                if($item['type']=="pekerjaan") return true;
+            }),
+            'in:shipowner,shipyard'
+        ],
+        'volume'    =>[
+            Rule::requiredIf(function()use($item){
+                if(!isset($item['type'])) return true;
+                if($item['type']=="pekerjaan") return true;
+            }),
+            'numeric',
+            'min:0'
+        ],
+        'satuan'    =>[
+            Rule::requiredIf(function()use($item){
+                if(!isset($item['type'])) return true;
+                if($item['type']=="pekerjaan") return true;
+            })
+        ],
+        'harga_satuan_aktual'=>[
+            Rule::requiredIf(function()use($item){
+                if(!isset($item['type'])) return true;
+                if($item['type']=="pekerjaan") return true;
+            }),
+            'numeric',
+            'min:0'
+        ],
+        'kategori'  =>[
+            Rule::requiredIf(function()use($item){
+                if(!isset($item['type'])) return true;
+                if($item['type']=="pekerjaan") return true;
+            }),
+            Rule::in(["supplies", "services", "class", "others", "yard_cost", "yard_canceled_jobs"])
+        ],
+        'catatan'   =>[
+            Rule::requiredIf(function()use($item){
+                if(!isset($item['type'])) return true;
+                if($item['type']=="pekerjaan"){
+                    if(!isset($item['catatan'])) return true;
+                }
+            })
+        ],
+        'prioritas' =>[
+            Rule::requiredIf(function()use($item){
+                if(!isset($item['type'])) return true;
+                if($item['type']=="pekerjaan") return true;
+            }),
+            Rule::in(["critical", "high", "medium", "low"])
+        ],
+        'created_at'=>[
+            Rule::requiredIf(function()use($item){
+                if(!isset($item['type'])) return true;
+                if($item['type']=="pekerjaan") return true;
+            }),
+            function($attr, $value, $fail){
+                try {
+                    $date=new DateTime($value);
+                }
+                catch(Exception $exception){
+                    return $fail($attr." must datetime");
+                }
+            }
+        ],
+        'updated_at'=>[
+            Rule::requiredIf(function()use($item){
+                if(!isset($item['type'])) return true;
+                if($item['type']=="pekerjaan") return true;
+            }),
+            function($attr, $value, $fail){
+                try {
+                    $date=new DateTime($value);
+                }
+                catch(Exception $exception){
+                    return $fail($attr." must datetime");
+                }
+            }
+        ],
+        'status'    =>[
+            Rule::requiredIf(function()use($item){
+                if(!isset($item['type'])) return true;
+                if($item['type']=="pekerjaan") return true;
+            }),
+            Rule::in(["preparation", "in_progress", "complete"])
+        ],
+        'progress'  =>[
+            Rule::requiredIf(function()use($item){
+                if(!isset($item['type'])) return true;
+                if($item['type']=="pekerjaan") return true;
+            }),
+            "numeric",
+            "between:0,100"
+        ],
+        'komentar'   =>[
+            Rule::requiredIf(function()use($item){
+                if(!isset($item['type'])) return true;
+                if($item['type']=="pekerjaan"){
+                    if(!isset($item['komentar'])) return true;
+                }
+            })
+        ]
+    ]);
+    if($validation->fails()){
+        $err_status=true;
+        return $validation->errors();
+    }
+    
+    //add sfi for unique
+    $id_list[]=trim($item['sfi']);
+
+    //next
+    if($item['type']=="kategori"){
+        foreach($item['items'] as $work){
+            $error[]=recursive_validation_report_work_area($work, $err_status, $nest+1, $id_list);
+        }
+    }
+
+    return $error;
+}
+function validation_report_work_area($work_area, $work_area_tender){
+    //error data
+    $sfi_list=[];
+    $error=[];
+    $error_status=false;
+
+    //code
+    if(!found_sfi_work_area($work_area, $work_area_tender)){
+        $error_status=true;
+        $error=[
+            'work_area' =>["multiple sfi missing reference in tender"]
+        ];
+    }
+    else{
+        foreach($work_area as $work){
+            $error[]=recursive_validation_report_work_area($work, $error_status, 0, $sfi_list);
+        }
+    }
+
+    //execute
+    return [
+        'error' =>$error_status,
+        'data'  =>$error
+    ];
+}
+//generate work area report from input
+function recursive_generate_report_work_area($item, $sfi_tender, $work_area_tender, &$update_history, $work_area_old, $login_data){
     if($item['type']=="kategori"){
         $data=[];
         foreach($item['items'] as $work){
-            $data[]=recursive_update_report_work_area($work, $login_data, $data_edit);
+            $data[]=recursive_generate_report_work_area($work, $sfi_tender, $work_area_tender, $update_history, $work_area_old, $login_data);
         }
 
         return array_merge($item, [
-            'items' =>$data
+            'items' =>$data,
+            'removable' =>in_array(trim($item['sfi']), $sfi_tender, true)?false:true
         ]);
     }
     elseif($item['type']=="pekerjaan"){
-        if(trim($item['sfi'])==trim($data_edit['sfi'])){
-            //params
-            $updated_at=with_timezone(date("Y-m-d H:i:s"));
+        //params
+        $data=[];
 
-            //data
-            $new_data=[
-                'start'     =>$data_edit['start'],
-                'end'       =>$data_edit['end'],
-                'status'    =>$data_edit['status'],
-                'progress'  =>$data_edit['progress'],
-                'volume'    =>$data_edit['volume'],
-                'harga_satuan_aktual'  =>$data_edit['harga_satuan_aktual'],
-                'total_harga_aktual'   =>$data_edit['volume']*$data_edit['harga_satuan_aktual'],
-                'additional'=>$data_edit['additional'],
-                'total_harga_aktual_plus_additional'=>($data_edit['volume']*$data_edit['harga_satuan_aktual'])+$data_edit['additional'],
-                'komentar'  =>$data_edit['komentar'],
-                'approved_shipowner'=>false,
-                'approved_shipyard' =>false,
-                'updated_at'=>$updated_at
-            ];
-            //update history
-            $history=[
-                'type'      =>"progress",
-                'data'      =>array_merge_without($item, ['update_history'], $new_data),
-                'created_by'=>$login_data
-            ];
-            $update_history=$item['update_history'];
-            array_unshift($update_history, $history);
+        $data['volume']=$item['volume'];
+        $data['harga_satuan_aktual']=$item['harga_satuan_aktual'];
+        $data['total_harga_aktual']=$item['volume']*$item['harga_satuan_aktual'];
+        $data['progress']=$item['progress'];
+        $data['status']=$item['status'];
+        $data['komentar']=$item['komentar'];
+        $data['created_at']=with_timezone($item['created_at']);
+        $data['updated_at']=with_timezone($item['updated_at']);
+        $data['removable']=in_array(trim($item['sfi']), $sfi_tender, true)?false:true;
 
-            //return
-            return array_merge($item, $new_data, [
-                'update_history'=>$update_history
-            ]);
+        //update history
+        $find=find_work(trim($item['sfi']), $work_area_old);
+        $created_at=with_timezone(date("Y-m-d H:i:s"));
+
+        if(isset($find['sfi'])){
+            if($find['status']!=$item['status'] || $find['progress']!=$item['progress'] || $find['total_harga_aktual']!=$data['total_harga_aktual']){
+                $update_history[]=[
+                    'sfi'   =>$item['sfi'],
+                    'user'  =>$login_data,
+                    'type'  =>"update",
+                    'data'  =>array_merge($item, $data),
+                    'created_at'=>$created_at,
+                    'updated_at'=>$created_at
+                ];
+            }
         }
-        return $item;
+        else{
+            $update_history[]=[
+                'sfi'   =>$item['sfi'],
+                'user'  =>$login_data,
+                'type'  =>"insert",
+                'data'  =>array_merge($item, $data),
+                'created_at'=>$created_at,
+                'updated_at'=>$created_at
+            ];
+        }
+
+        //return
+        return array_merge($item, $data);
     }
 }
-function update_report_work_area($work_area, $login_data, $edit){
+function generate_report_work_area($work_area, $work_area_tender, $work_area_old, $login_data){
+    //params
+    $sfi_tender=get_all_sfi_work_area($work_area_tender);
+    $work_area_new=get_all_work_area($work_area);
+    $work_area_tender=get_all_work_area($work_area_tender);
+    $work_area_old=get_all_work_area($work_area_old);
+    $update_history=[];
+
+    //history remove pekerjaan
+    if(!find_work())
+
+    //process
     $data=[];
     foreach($work_area as $work){
-        $data[]=recursive_update_report_work_area($work, $login_data, $edit);
+        $data[]=recursive_generate_report_work_area($work, $sfi_tender, $work_area_tender, $update_history, $work_area_old, $login_data);
     }
 
-    return $data;
+    //return
+    return [
+        'update_history'=>$update_history,
+        'work_area'     =>$data
+    ];
 }
 //update report work area checklist
 function recursive_update_report_work_area_checklist($item, $login_data, $data_edit){

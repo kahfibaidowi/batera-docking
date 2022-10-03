@@ -474,7 +474,7 @@ class ProyekController extends Controller
         DB::transaction(function() use($req, $login_data){
             ProyekModel::where("id_proyek", $req['id_proyek'])
                 ->update([
-                    'work_area'         =>generate_proyek_work_area($req['work_area'])
+                    'work_area' =>generate_proyek_work_area($req['work_area'])
                 ]);
         });
 

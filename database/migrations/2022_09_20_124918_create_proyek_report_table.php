@@ -17,6 +17,9 @@ return new class extends Migration
             $table->id("id_proyek_report");
             $table->unsignedBigInteger("id_proyek")->unique();
             $table->unsignedBigInteger("id_tender")->unique();
+            $table->text("summary_detail");
+            $table->text("approved_by")->comment("disetujui oleh shipyard/shipmanager");
+            $table->text("approved")->comment("tanggal approved");
             $table->date("proyek_start")->nullable();
             $table->date("proyek_end")->nullable();
             $table->unsignedInteger("proyek_period")->default(0);
@@ -28,6 +31,7 @@ return new class extends Migration
             $table->text("partner");
             $table->text("deskripsi");
             $table->text("work_area")->default("[]")->comment("list pekerjaan/work area, data berbentuk json");
+            $table->text("work_area_update_history")->default("[]");
             $table->timestamps();
 
             //fk

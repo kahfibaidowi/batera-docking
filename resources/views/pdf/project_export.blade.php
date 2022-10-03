@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-	<title>Membuat Laporan PDF Dengan DOMPDF Laravel</title>
+	<title>Report Project Docking</title>
 	<link 
         rel="stylesheet" 
         href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" 

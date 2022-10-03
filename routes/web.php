@@ -332,6 +332,12 @@ $router->delete("/tender/{id}/unselect_tender", [
         "auth"
     ]
 ]);
+$router->put("/tender/{id}/dokumen_kontrak", [
+    'uses'=>"TenderController@update_dokumen_kontrak",
+    'middleware'=>[
+        "auth"
+    ]
+]);
 $router->put("/tender/{id}/work_area", [
     'uses'=>"TenderController@update_tender_work_area",
     'middleware'=>[

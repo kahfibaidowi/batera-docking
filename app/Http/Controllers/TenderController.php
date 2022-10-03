@@ -80,11 +80,12 @@ class TenderController extends Controller
             TenderModel::create([
                 'id_proyek'         =>$req['id_proyek'],
                 'id_user'           =>$req['id_user'],
+                'dokumen_kontrak'   =>"",
                 'yard_total_quote'  =>$req['yard_total_quote'],
                 'general_diskon_persen' =>$req['general_diskon_persen'],
                 'additional_diskon' =>$req['additional_diskon'],
                 'sum_internal_adjusment'=>$req['sum_internal_adjusment'],
-                'work_area'         =>generate_tender_work_area($proyek['work_area']),
+                'work_area'         =>generate_tender_work_area_from_proyek($proyek['work_area']),
                 'status'            =>"draft"
             ]);
         });
@@ -348,10 +349,12 @@ class TenderController extends Controller
             $tender=TenderModel::where("id_tender", $req['id_tender'])->first();
             $proyek=ProyekModel::where("id_proyek", $tender['id_proyek'])->first();
 
-            $work_area=generate_report_work_area($tender['work_area']);
             ProyekReportModel::create([
                 "id_proyek"     =>$proyek['id_proyek'],
                 "id_tender"     =>$req['id_tender'],
+                "summary_detail"=>"",
+                "approved_by"   =>"",
+                "approved"      =>"",
                 "proyek_start"  =>$proyek['off_hire_start'],
                 "proyek_end"    =>$proyek['off_hire_end'],
                 "proyek_period" =>$proyek['off_hire_period'],
@@ -362,8 +365,82 @@ class TenderController extends Controller
                 "prioritas"     =>"",
                 "partner"       =>"",
                 "deskripsi"     =>"",
-                "work_area"     =>$work_area
+                "work_area"     =>generate_report_work_area_from_tender($tender['work_area'])
             ]);
+        });
+
+        return response()->json([
+            'status'=>"ok"
+        ]);
+    }
+
+    public function update_dokumen_kontrak(Request $request, $id)
+    {
+        $login_data=$request['fm__login_data'];
+        $req=$request->all();
+
+        //ROLE AUTHENTICATION
+        if(!in_array($login_data['role'], ['admin', 'shipowner', 'shipmanager'])){
+            return response()->json([
+                'error' =>"ACCESS_NOT_ALLOWED"
+            ], 403);
+        }
+
+        //VALIDATION
+        $req['id_tender']=$id;
+        $validation=Validator::make($req, [
+            'id_tender'         =>[
+                "required",
+                function($attr, $value, $fail)use($login_data){
+                    $t=TenderModel::where("id_tender", $value)
+                        ->where("status", "published");
+
+                    //found
+                    if($t->count()==0){
+                        return $fail("The selected id tender is invalid or tender not published.");
+                    }
+                    $t=$t->first();
+
+                    //proyek
+                    $p=ProyekModel::where("id_proyek", $t['id_proyek'])
+                        ->where("status", "published");
+                    if($login_data['role']=="shipowner"){
+                        $p=$p->whereHas("kapal", function($query)use($login_data){
+                            $query->where("id_user", $login_data['id_user']);
+                        });
+                    }
+                    if($p->count()==0){
+                        return $fail("id tender not allowed.");
+                    }
+                }
+            ],
+            'dokumen'   =>[
+                Rule::requiredIf(!isset($req['dokumen'])),
+                "ends_with:.pdf,.doc,.docx,.xls,.xlsx",
+                function($attr, $value, $fail){
+                    if(trim($value)==""){
+                        return true;
+                    }
+                    if(is_document_file($value)){
+                        return true;
+                    }
+                    return $fail("document not found.");
+                }
+            ]
+        ]);
+        if($validation->fails()){
+            return response()->json([
+                'error' =>"VALIDATION_ERROR",
+                'data'  =>$validation->errors()
+            ], 500);
+        }
+
+        //SUCCESS
+        DB::transaction(function() use($req, $login_data){
+            TenderModel::where("id_tender", $req['id_tender'])
+                ->update([
+                    'dokumen_kontrak'   =>$req['dokumen']
+                ]);
         });
 
         return response()->json([
@@ -422,6 +499,10 @@ class TenderController extends Controller
         //SUCCESS
         DB::transaction(function() use($req, $login_data){
             ProyekReportModel::where("id_tender", $req['id_tender'])->delete();
+            TenderModel::where("id_tender", $req['id_tender'])
+                ->update([
+                    'dokumen_kontrak'   =>""
+                ]);
         });
 
         return response()->json([
@@ -525,6 +606,7 @@ class TenderController extends Controller
         $owner_total_cost=$offhire_cost+$owner_cost;
         $general_diskon=($tender['general_diskon_persen']/100)*$tender['yard_total_quote'];
         $after_diskon=$tender['yard_total_quote']-$general_diskon;
+        $summary=get_all_summary_work_area($tender['work_area'], ['total_harga_kontrak']);
 
         $data=array_merge($tender, [
             'proyek'        =>array_merge_without($tender['proyek'], ['work_area'], []),
@@ -536,7 +618,8 @@ class TenderController extends Controller
             'after_diskon'  =>$after_diskon,
             'additional_diskon'=>$tender['additional_diskon'],
             'sum_internal_adjusment'=>$tender['sum_internal_adjusment'],
-            'work_area'     =>get_summary_work_area($tender['work_area'], ['total_harga_kontrak', 'total_harga_budget'])
+            'work_area'     =>$summary['items'],
+            'summary_work_area' =>array_merge_without($summary, ['items', 'type'])
         ]);
 
         return response()->json([
@@ -575,24 +658,14 @@ class TenderController extends Controller
                     return true;
                 }
             ],
-            'sfi'       =>[
-                "required",
-                function($attr, $value, $fail)use($req){
-                    $v=TenderModel::where("id_tender", $req['id_tender'])->first();
-                    if(is_null($v)){
-                        return $fail("id tender not found");
-                    }
-
-                    if(!found_sfi_pekerjaan_work_area($value, $v['work_area'], "shipyard")){
-                        return $fail("sfi pekerjaan not found or not allowed");
-                    }
-                    return true;
-                }
-            ],
-            'start'     =>"required|date_format:Y-m-d",
-            'end'       =>"required|date_format:Y-m-d|after_or_equal:start",
-            'volume'    =>"required|numeric|min:0",
-            'harga_satuan_kontrak'  =>"required|numeric|min:0"
+            'work_area'         =>[
+                Rule::requiredIf(function()use($req){
+                    if(!isset($req['work_area'])) return true;
+                    if(!is_array($req['work_area'])) return true;
+                }),
+                'array',
+                'min:0'
+            ]
         ]);
         if($validation->fails()){
             return response()->json([
@@ -601,13 +674,22 @@ class TenderController extends Controller
             ], 500);
         }
 
+        //VALIDATION DETAIL FOR WORK AREA
+        $tender=TenderModel::with("proyek")->where("id_tender", $req['id_tender'])->first();
+        $validate_work_area=validation_tender_work_area($req['work_area'], $tender['proyek']['work_area']);
+        if($validate_work_area['error']){
+            return response()->json([
+                'error' =>"VALIDATION_ERROR",
+                'data'  =>$validate_work_area['data']
+            ], 500);
+        }
+
         //SUCCESS
-        DB::transaction(function() use($req, $login_data){
-            //proyek
-            $tender=TenderModel::where("id_tender", $req['id_tender'])->lockForUpdate()->first();
-            $tender->update([
-                'work_area' =>update_tender_work_area($tender['work_area'], $req)
-            ]);
+        DB::transaction(function() use($req, $tender){
+            TenderModel::where("id_tender", $req['id_tender'])
+                ->update([
+                    'work_area' =>generate_tender_work_area($req['work_area'], $tender['proyek']['work_area'])
+                ]);
         });
         
         return response()->json([

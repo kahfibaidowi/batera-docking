@@ -249,11 +249,7 @@ class ReportController extends Controller
         $after_diskon=$proyek_summary['tender']['yard_total_quote']-$general_diskon;
 
         $summary=get_all_summary_work_area($proyek_summary['work_area'], [
-            'total_harga_budget', 
-            'total_harga_kontrak', 
             'total_harga_aktual', 
-            'additional',
-            'total_harga_aktual_plus_additional',
             'progress',
             'date_min_max',
             'last_change'
@@ -725,29 +721,14 @@ class ReportController extends Controller
                     return true;
                 }
             ],
-            'sfi'       =>[
-                "required",
-                function($attr, $value, $fail)use($req, $login_data){
-                    $v=ProyekReportModel::where("id_proyek", $req['id_proyek'])->first();
-                    if(is_null($v)){
-                        return $fail("id proyek not found");
-                    }
-
-                    $resp=$login_data['role']=="shipyard"?"shipyard":"all";
-                    if(!found_sfi_pekerjaan_work_area($value, $v['work_area'], $resp)){
-                        return $fail("sfi pekerjaan not found or not allowed");
-                    }
-                    return true;
-                }
-            ],
-            'status'    =>"required|in:in_progress,complete",
-            'progress'  =>"required|numeric|between:0,100",
-            'start'     =>"required|date_format:Y-m-d",
-            'end'       =>"required|date_format:Y-m-d|after_or_equal:start",
-            'volume'    =>"required|numeric|min:0",
-            'harga_satuan_aktual'=>"required|numeric|min:0",
-            'additional'=>"required|numeric|min:0",
-            'komentar'   =>[Rule::requiredIf(!isset($req['komentar']))]
+            'work_area'         =>[
+                Rule::requiredIf(function()use($req){
+                    if(!isset($req['work_area'])) return true;
+                    if(!is_array($req['work_area'])) return true;
+                }),
+                'array',
+                'min:0'
+            ]
         ]);
         if($validation->fails()){
             return response()->json([
@@ -756,8 +737,18 @@ class ReportController extends Controller
             ], 500);
         }
 
+        //VALIDATION DETAIL FOR WORK AREA
+        $report=ProyekReportModel::with("tender")->where("id_proyek", $req['id_proyek'])->first();
+        $validate_work_area=validation_report_work_area($req['work_area'], $report['tender']['work_area']);
+        if($validate_work_area['error']){
+            return response()->json([
+                'error' =>"VALIDATION_ERROR",
+                'data'  =>$validate_work_area['data']
+            ], 500);
+        }
+
         //SUCCESS
-        DB::transaction(function() use($req, $login_data){
+        DB::transaction(function() use($req, $login_data, $report){
             //pic
             $summary=ProyekReportModel::where("id_proyek", $req['id_proyek'])->first();
             $pic=ProyekReportPicModel::where("id_proyek_report", $summary['id_proyek_report'])
@@ -773,14 +764,17 @@ class ReportController extends Controller
             }
 
             //proyek
-            $proyek_report=ProyekReportModel::where("id_proyek", $req['id_proyek'])->lockForUpdate()->first();
+            $proyek_report=ProyekReportModel::with("tender")->where("id_proyek", $req['id_proyek'])->lockForUpdate()->first();
+            $data=generate_report_work_area($req['work_area'], $proyek_report['tender']['work_area'], $proyek_report['work_area'], $login_data);
             $proyek_report->update([
-                'work_area' =>update_report_work_area($proyek_report['work_area'], $login_data, $req)
+                'work_area' =>$data['work_area'],
+                'work_area_update_history'  =>array_merge($data['update_history'], $proyek_report['work_area_update_history'])
             ]);
         });
         
         return response()->json([
-            'status'=>"ok"
+            'status'=>"ok",
+            'data'  =>$a
         ]);
     }
 

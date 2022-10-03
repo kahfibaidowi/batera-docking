@@ -12,6 +12,7 @@ class TenderModel extends Model{
     protected $fillable=[
         'id_proyek',
         'id_user',
+        'dokumen_kontrak',
         'yard_total_quote',
         'general_diskon_persen',
         'additional_diskon',

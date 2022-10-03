@@ -17,6 +17,7 @@ return new class extends Migration
             $table->id("id_tender");
             $table->unsignedBigInteger("id_proyek");
             $table->unsignedBigInteger("id_user")->comment("shipyard/galangan");
+            $table->text("dokumen_kontrak");
             $table->double("yard_total_quote");
             $table->double("general_diskon_persen");
             $table->double("additional_diskon");

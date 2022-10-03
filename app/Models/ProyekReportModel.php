@@ -12,6 +12,9 @@ class ProyekReportModel extends Model{
     protected $fillable=[
         "id_proyek",
         "id_tender",
+        "summary_detail",
+        "approved_by",
+        "approved",
         "proyek_start",
         "proyek_end",
         "proyek_period",
@@ -22,11 +25,13 @@ class ProyekReportModel extends Model{
         "prioritas",
         "partner",
         "deskripsi",
-        "work_area"
+        "work_area",
+        "work_area_update_history"
     ];
 
     protected $casts = [
-        'work_area' =>'array'
+        'work_area' =>'array',
+        'work_area_update_history'=>'array'
     ];
 
     protected $hidden=[];
