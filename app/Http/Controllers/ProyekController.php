@@ -393,7 +393,7 @@ class ProyekController extends Controller
 
         //SUCCESS
         $proyek=ProyekModel::where("id_proyek", $req['id_proyek'])
-            ->with("kapal", "kapal.owner", "kapal.perusahaan", "report", "report.tender")
+            ->with("responsible", "kapal", "kapal.owner", "kapal.perusahaan", "report", "report.tender")
             ->first()
             ->toArray();
 

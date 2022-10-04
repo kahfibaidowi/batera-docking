@@ -254,9 +254,13 @@ class ReportController extends Controller
             ->where("id_proyek", $req['id_proyek'])
             ->first()
             ->toArray();
+        
+        $general_diskon=($proyek_summary['tender']['general_diskon_persen']/100)*$proyek_summary['tender']['yard_total_quote'];
+        $after_diskon=$proyek_summary['tender']['yard_total_quote']-$general_diskon;
 
         $data=array_merge_without($proyek_summary, ['tender'], [
-            'proyek'=>array_merge_without($proyek_summary['proyek'], ['work_area'])
+            'proyek'=>array_merge_without($proyek_summary['proyek'], ['work_area']),
+            'estimate_cost' =>$after_diskon
         ]);
 
         return response()->json([
