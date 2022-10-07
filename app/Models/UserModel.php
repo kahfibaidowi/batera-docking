@@ -14,7 +14,7 @@ class UserModel extends Model{
         'nama_lengkap', 
         'nama_kapal',
         'title',
-        'user_id',
+        'departemen_id',
         'departemen',
         'jabatan', 
         'no_hp', 

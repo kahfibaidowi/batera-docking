@@ -25,15 +25,11 @@ class ProyekReportModel extends Model{
         "prioritas",
         "partner",
         "deskripsi",
-        "work_area",
-        "work_area_update_history"
+        "work_area"
     ];
-
     protected $casts = [
-        'work_area' =>'array',
-        'work_area_update_history'=>'array'
+        'work_area' =>'array'
     ];
-
     protected $hidden=[];
 
 

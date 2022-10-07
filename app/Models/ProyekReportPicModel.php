@@ -21,7 +21,7 @@ class ProyekReportPicModel extends Model{
      *#FUNCTION
      *
      */
-    public function summary(){
+    public function report(){
         return $this->belongsTo(ProyekReportModel::class, "id_proyek_report");
     }
 

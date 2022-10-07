@@ -12,6 +12,8 @@ class ProyekModel extends Model{
     protected $fillable=[
         'id_kapal',
         'id_user',
+        'selected_yard',
+        'phase',
         'tahun',
         "mata_uang",
         "off_hire_start",
@@ -27,25 +29,11 @@ class ProyekModel extends Model{
         "repair_in_dock_end",
         "repair_in_dock_period",
         "repair_additional_day",
-        "work_area",
-        "status"
+        "work_area"
     ];
-
     protected $casts=[
-        'work_area' =>'array'
+        'work_area'     =>'array'
     ];
-
-    protected $hidden=['status'];
-
-    /*
-     *#CUSTOM ATTR
-     *
-     */
-    protected $appends=['published'];
-
-    public function getPublishedAttribute(){
-        return $this->status=="published"?true:false;
-    }
 
 
     /*

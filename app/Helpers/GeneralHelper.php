@@ -161,10 +161,6 @@ function multi_array_search($array, $search)
     // Return the result array
     return $result;
 }
-function convert_object_to_array($data)
-{
-    return json_decode(json_encode($data), true);
-}
 function array_merge_without($array, $without=[], $merge=[])
 {
     $new_array=$array;
@@ -191,4 +187,44 @@ function array_merge_with($array, $with=[], $merge=[])
     }
 
     return array_merge($new_array, $merge);
+}
+
+
+/*-----------------------------------------------------------------------
+ * PENGATURAN
+ *-----------------------------------------------------------------------
+ */
+function get_info_perusahaan(){
+    //CHECK PROFILE IN DATABASE
+    $key_name=[
+        "profile_nama_perusahaan",
+        "profile_merk_perusahaan",
+        "profile_alamat_perusahaan_1",
+        "profile_alamat_perusahaan_2",
+        "profile_telepon",
+        "profile_fax",
+        "profile_npwp",
+        "profile_email"
+    ];
+    $profile_perusahaan=PengaturanModel::whereIn("tipe_pengaturan", $key_name);
+    if($profile_perusahaan->count()==0){
+        DB::transaction(function() use($key_name){
+            foreach($key_name as $val){
+                PengaturanModel::create([
+                    "tipe_pengaturan"   =>$val,
+                    "value_pengaturan"  =>""
+                ]);
+            }
+        });
+    }
+    
+    //SUCCESS
+    $profile_perusahaan=PengaturanModel::whereIn("tipe_pengaturan", $key_name)->get();
+
+    $data=[];
+    foreach($profile_perusahaan as $val){
+        $data[$val['tipe_pengaturan']]=$val['value_pengaturan'];
+    }
+
+    return (object)$data;
 }

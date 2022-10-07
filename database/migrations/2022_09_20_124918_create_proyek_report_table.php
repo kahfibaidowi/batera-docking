@@ -15,8 +15,8 @@ return new class extends Migration
     {
         Schema::create("tbl_proyek_report", function (Blueprint $table) {
             $table->id("id_proyek_report");
-            $table->unsignedBigInteger("id_proyek")->unique();
-            $table->unsignedBigInteger("id_tender")->unique();
+            $table->unsignedBigInteger("id_proyek")->unique()->comment("proyeknya");
+            $table->unsignedBigInteger("id_tender")->unique()->comment("tender yang dipilih");
             $table->text("summary_detail");
             $table->text("approved_by")->comment("disetujui oleh shipyard/shipmanager");
             $table->text("approved")->comment("tanggal approved");

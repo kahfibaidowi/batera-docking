@@ -8,6 +8,7 @@ use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\DB;
 use App\Models\ProyekModel;
 use App\Models\UserModel;
+use App\Repository\ProyekRepo;
 
 class ProyekController extends Controller
 {
@@ -19,7 +20,7 @@ class ProyekController extends Controller
         $req=$request->all();
 
         //ROLE AUTHENTICATION
-        if(!in_array($login_data['role'], ['admin', 'shipowner', 'shipmanager'])){
+        if(!in_array($login_data['role'], ['admin', 'shipmanager'])){
             return response()->json([
                 'error' =>"ACCESS_NOT_ALLOWED"
             ], 403);
@@ -29,11 +30,7 @@ class ProyekController extends Controller
         $validation=Validator::make($req, [
             'id_kapal'  =>[
                 "required",
-                Rule::exists("App\Models\KapalModel")->where(function($query)use($login_data){
-                    if($login_data['role']=="shipowner"){
-                        return $query->where("id_user", $login_data['id_user']);
-                    }
-                })
+                Rule::exists("App\Models\KapalModel")
             ],
             'id_user'   =>[
                 "required",
@@ -42,9 +39,13 @@ class ProyekController extends Controller
                         ->whereIn("role", ['shipyard', 'shipmanager']);
 
                     if($v->count()==0){
-                        return $fail("The selected id_user is invalid or role not shipyard, shipmanager");
+                        return $fail("The selected id_user(responsible) is invalid or role not shipyard, shipmanager");
                     }
                 }
+            ],
+            'phase'         =>"required|in:requisition,in_progress,evaluasi,finish",
+            'selected_yard' =>[
+                Rule::requiredIf(!isset($req['selected_yard']))
             ],
             'tahun'     =>"required|integer|digits:4",
             'mata_uang'     =>"required",
@@ -75,6 +76,8 @@ class ProyekController extends Controller
             ProyekModel::create([
                 'id_kapal'  =>$req['id_kapal'],
                 'id_user'   =>$req['id_user'],
+                'phase'     =>$req['phase'],
+                'selected_yard' =>$req['selected_yard'],
                 'tahun'     =>$req['tahun'],
                 'mata_uang'     =>$req['mata_uang'],
                 'off_hire_start'=>$req['off_hire_start'],
@@ -89,8 +92,7 @@ class ProyekController extends Controller
                 'repair_in_dock_start'  =>$req['repair_in_dock_start'],
                 'repair_in_dock_end'    =>$req['repair_in_dock_end'],
                 'repair_in_dock_period' =>$repair_in_dock_period,
-                'repair_additional_day' =>$req['repair_additional_day'],
-                'status'            =>"draft"
+                'repair_additional_day' =>$req['repair_additional_day']
             ]);
         });
 
@@ -105,7 +107,7 @@ class ProyekController extends Controller
         $req=$request->all();
 
         //ROLE AUTHENTICATION
-        if(!in_array($login_data['role'], ['admin', 'shipowner', 'shipmanager'])){
+        if(!in_array($login_data['role'], ['admin', 'shipmanager'])){
             return response()->json([
                 'error' =>"ACCESS_NOT_ALLOWED"
             ], 403);
@@ -116,18 +118,7 @@ class ProyekController extends Controller
         $validation=Validator::make($req, [
             'id_proyek'  =>[
                 "required",
-                function($attr, $value, $fail)use($login_data){
-                    $v=ProyekModel::where("id_proyek", $value)->where("status", "draft");
-                    if($login_data['role']=="shipowner"){
-                        $v=$v->whereHas("kapal", function($q)use($login_data){
-                            $q->where("id_user", $login_data['id_user']);
-                        });
-                    }
-                    if($v->count()==0){
-                        return $fail("The selected id proyek is invalid or proyek is published.");
-                    }
-                    return true;
-                }
+                Rule::exists("App\Models\ProyekModel")
             ],
             'id_user'   =>[
                 "required",
@@ -136,9 +127,13 @@ class ProyekController extends Controller
                         ->whereIn("role", ['shipyard', 'shipmanager']);
 
                     if($v->count()==0){
-                        return $fail("The selected id_user is invalid or role not shipyard, shipmanager");
+                        return $fail("The selected id_user(responsible) is invalid or role not shipyard, shipmanager");
                     }
                 }
+            ],
+            'phase'         =>"required|in:requisition,in_progress,evaluasi,finish",
+            'selected_yard' =>[
+                Rule::requiredIf(!isset($req['selected_yard']))
             ],
             'tahun'     =>"required|integer|digits:4",
             'mata_uang'     =>"required",
@@ -184,59 +179,6 @@ class ProyekController extends Controller
                     'repair_in_dock_end'    =>$req['repair_in_dock_end'],
                     'repair_in_dock_period' =>$repair_in_dock_period,
                     'repair_additional_day' =>$req['repair_additional_day']
-                ]);
-        });
-
-        return response()->json([
-            'status'=>"ok"
-        ]);
-    }
-
-    public function publish_proyek(Request $request, $id)
-    {
-        $login_data=$request['fm__login_data'];
-        $req=$request->all();
-
-        //ROLE AUTHENTICATION
-        if(!in_array($login_data['role'], ['admin', 'shipowner', 'shipmanager'])){
-            return response()->json([
-                'error' =>"ACCESS_NOT_ALLOWED"
-            ], 403);
-        }
-
-        //VALIDATION
-        $req['id_proyek']=$id;
-        $validation=Validator::make($req, [
-            'id_proyek'  =>[
-                "required",
-                function($attr, $value, $fail)use($login_data){
-                    $v=ProyekModel::where("id_proyek", $value)->where("status", "draft");
-                    //shipowner
-                    if($login_data['role']=="shipowner"){
-                        $v=$v->whereHas("kapal", function($q)use($login_data){
-                            $q->where("id_user", $login_data['id_user']);
-                        });
-                    }
-                    if($v->count()==0){
-                        return $fail("The selected id proyek is invalid or proyek is published.");
-                    }
-
-                    return true;
-                }
-            ]
-        ]);
-        if($validation->fails()){
-            return response()->json([
-                'error' =>"VALIDATION_ERROR",
-                'data'  =>$validation->errors()
-            ], 500);
-        }
-
-        //SUCCESS
-        DB::transaction(function() use($req, $login_data){
-            ProyekModel::where("id_proyek", $req['id_proyek'])
-                ->update([
-                    'status'=>"published"
                 ]);
         });
 
@@ -299,7 +241,7 @@ class ProyekController extends Controller
         $req=$request->all();
 
         //ROLE AUTHENTICATION
-        if(!in_array($login_data['role'], ['admin', 'shipowner', 'shipmanager'])){
+        if(!in_array($login_data['role'], ['admin', 'director', 'shipmanager', 'shipyard'])){
             return response()->json([
                 'error' =>"ACCESS_NOT_ALLOWED"
             ], 403);
@@ -324,32 +266,13 @@ class ProyekController extends Controller
         }
 
         //SUCCESS
-        $proyek=ProyekModel::with("kapal", "kapal.owner", "kapal.perusahaan");
-        //q
-        $proyek=$proyek->whereHas("kapal", function($query)use($req){
-            $query->where("nama_kapal", "ilike", "%".$req['q']."%");
-        });
-        //shipowner
-        if($login_data['role']=="shipowner"){
-            $proyek=$proyek->withWhereHas("kapal", function($q)use($login_data){
-                $q->where("id_user", $login_data['id_user']);
-            });
-        }
-        //get & paginate
-        $proyek=$proyek->orderByDesc("id_proyek")
-            ->paginate(trim($req['per_page']))
-            ->toArray();
-
-        $data=[];
-        foreach($proyek['data'] as $val){
-            $data[]=array_merge_without($val, ['work_area']);
-        }
+        $proyek=ProyekRepo::gets_proyek($req, $login_data);
 
         return response()->json([
             'first_page'    =>1,
             'current_page'  =>$proyek['current_page'],
             'last_page'     =>$proyek['last_page'],
-            'data'          =>$data
+            'data'          =>$proyek['data']
         ]);
     }
 
@@ -359,7 +282,7 @@ class ProyekController extends Controller
         $req=$request->all();
 
         //ROLE AUTHENTICATION
-        if(!in_array($login_data['role'], ['admin', 'shipowner', 'shipmanager'])){
+        if(!in_array($login_data['role'], ['admin', 'director', 'shipmanager'])){
             return response()->json([
                 'error' =>"ACCESS_NOT_ALLOWED"
             ], 403);
@@ -370,18 +293,7 @@ class ProyekController extends Controller
         $validation=Validator::make($req, [
             'id_proyek'  =>[
                 "required",
-                function($attr, $value, $fail)use($login_data){
-                    $v=ProyekModel::where("id_proyek", $value);
-                    if($login_data['role']=="shipowner"){
-                        $v=$v->whereHas("kapal", function($q)use($login_data){
-                            $q->where("id_user", $login_data['id_user']);
-                        });
-                    }
-                    if($v->count()==0){
-                        return $fail("The selected id proyek is invalid.");
-                    }
-                    return true;
-                }
+                Rule::exists("App\Models\ProyekModel")
             ]
         ]);
         if($validation->fails()){
@@ -392,10 +304,7 @@ class ProyekController extends Controller
         }
 
         //SUCCESS
-        $proyek=ProyekModel::where("id_proyek", $req['id_proyek'])
-            ->with("responsible", "kapal", "kapal.owner", "kapal.perusahaan", "report", "report.tender")
-            ->first()
-            ->toArray();
+        $proyek=ProyekRepo::get_proyek($req['id_proyek'], $login_data);
 
         return response()->json([
             'data'  =>$proyek
@@ -409,7 +318,7 @@ class ProyekController extends Controller
         $req=$request->all();
 
         //ROLE AUTHENTICATION
-        if(!in_array($login_data['role'], ['admin', 'shipowner', 'shipmanager'])){
+        if(!in_array($login_data['role'], ['admin', 'shipmanager'])){
             return response()->json([
                 'error' =>"ACCESS_NOT_ALLOWED"
             ], 403);
@@ -420,18 +329,7 @@ class ProyekController extends Controller
         $validation=Validator::make($req, [
             'id_proyek'  =>[
                 "required",
-                function($attr, $value, $fail)use($login_data){
-                    $v=ProyekModel::where("id_proyek", $value)->where("status", "draft");
-                    if($login_data['role']=="shipowner"){
-                        $v=$v->whereHas("kapal", function($q)use($login_data){
-                            $q->where("id_user", $login_data['id_user']);
-                        });
-                    }
-                    if($v->count()==0){
-                        return $fail("The selected id proyek is invalid or proyek is published.");
-                    }
-                    return true;
-                }
+                Rule::exists("App\Models\ProyekModel")
             ],
             'work_area' =>"required"
         ]);
@@ -443,7 +341,7 @@ class ProyekController extends Controller
         }
 
         //SUCCESS
-        DB::transaction(function() use($req, $login_data){
+        DB::transaction(function() use($req){
             ProyekModel::where("id_proyek", $req['id_proyek'])
                 ->update([
                     'work_area' =>$req['work_area']

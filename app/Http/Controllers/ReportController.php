@@ -10,12 +10,13 @@ use App\Models\ProyekModel;
 use App\Models\ProyekReportModel;
 use App\Models\ProyekReportDetailModel;
 use App\Models\ProyekReportPicModel;
+use App\Repository\ProyekReportRepo;
 
 class ReportController extends Controller
 {
 
     //SUMMARY PROJECT
-    public function update_summary(Request $request, $id)
+    public function update_report(Request $request, $id)
     {
         $login_data=$request['fm__login_data'];
         $req=$request->all();
@@ -127,13 +128,13 @@ class ReportController extends Controller
         ]);
     }
 
-    public function gets_summary(Request $request)
+    public function gets_report(Request $request)
     {
         $login_data=$request['fm__login_data'];
         $req=$request->all();
 
         //ROLE AUTHENTICATION
-        if(!in_array($login_data['role'], ['admin', 'shipowner', 'shipyard', 'shipmanager'])){
+        if(!in_array($login_data['role'], ['admin', 'director', 'shipyard', 'shipmanager'])){
             return response()->json([
                 'error' =>"ACCESS_NOT_ALLOWED"
             ], 403);
@@ -149,7 +150,10 @@ class ReportController extends Controller
             'q'         =>[
                 Rule::requiredIf(!isset($req['q']))
             ],
-            'status'    =>"required|in:all,preparation,in_progress,evaluasi"
+            'status'    =>[
+                Rule::requiredIf(!isset($req['status'])),
+                "in:preparation,in_progress,evaluasi"
+            ]
         ]);
         if($validation->fails()){
             return response()->json([
@@ -159,57 +163,23 @@ class ReportController extends Controller
         }
 
         //SUCCESS
-        $proyek_summary=ProyekReportModel::with("proyek", "proyek.kapal", "proyek.kapal.perusahaan");
-        //q
-        $proyek_summary=$proyek_summary->where(function($q)use($req){
-            $q->whereHas("proyek.kapal", function($query)use($req){
-                $query->where("nama_kapal", "ilike", "%".$req['q']."%");
-            });
-        });
-        //status
-        if($req['status']!="all"){
-            $proyek_summary=$proyek_summary->where("status", $req['status']);
-        }
-        //shipowner
-        if($login_data['role']=="shipowner"){
-            $proyek_summary=$proyek_summary->whereHas("proyek.kapal", function($query)use($login_data){
-                $query->where("id_user", $login_data['id_user']);
-            });
-        }
-        //shipyard
-        if($login_data['role']=="shipyard"){
-            $proyek_summary=$proyek_summary->whereHas("tender", function($query)use($login_data){
-                $query->where("id_user", $login_data['id_user']);
-            });
-        }
-
-        //order & paginate
-        $proyek_summary=$proyek_summary->orderByDesc("id_proyek")
-            ->paginate(trim($req['per_page']))
-            ->toArray();
-
-        $data=[];
-        foreach($proyek_summary['data'] as $val){
-            $data[]=array_merge_without($val, ['work_area'], [
-                'proyek'=>array_merge_without($val['proyek'], ['work_area'])
-            ]);
-        }
+        $report=ProyekReportRepo::gets_report($req, $login_data);
 
         return response()->json([
             'first_page'    =>1,
-            'current_page'  =>$proyek_summary['current_page'],
-            'last_page'     =>$proyek_summary['last_page'],
-            'data'          =>$data
+            'current_page'  =>$report['current_page'],
+            'last_page'     =>$report['last_page'],
+            'data'          =>$report['data']
         ]);
     }
 
-    public function get_summary(Request $request, $id)
+    public function get_report(Request $request, $id)
     {
         $login_data=$request['fm__login_data'];
         $req=$request->all();
 
         //ROLE AUTHENTICATION
-        if(!in_array($login_data['role'], ['admin', 'shipowner', 'shipyard', 'shipmanager'])){
+        if(!in_array($login_data['role'], ['admin', 'director', 'shipyard', 'shipmanager'])){
             return response()->json([
                 'error' =>"ACCESS_NOT_ALLOWED"
             ], 403);
@@ -223,12 +193,6 @@ class ReportController extends Controller
                 function($attr, $value, $fail)use($login_data){
                     //proyek
                     $p=ProyekModel::has("report")->where("id_proyek", $value);
-                    //--shipowner
-                    if($login_data['role']=="shipowner"){
-                        $p=$p->whereHas("kapal", function($query)use($login_data){
-                            $query->where("id_user", $login_data['id_user']);
-                        });
-                    }
                     //--shipyard
                     if($login_data['role']=="shipyard"){
                         $p=$p->whereHas("report.tender", function($query)use($login_data){
@@ -250,21 +214,10 @@ class ReportController extends Controller
         }
 
         //SUCCESS
-        $proyek_summary=ProyekReportModel::with("proyek", "proyek.kapal", "proyek.kapal.perusahaan", "tender", "tender.shipyard")
-            ->where("id_proyek", $req['id_proyek'])
-            ->first()
-            ->toArray();
-        
-        $general_diskon=($proyek_summary['tender']['general_diskon_persen']/100)*$proyek_summary['tender']['yard_total_quote'];
-        $after_diskon=$proyek_summary['tender']['yard_total_quote']-$general_diskon;
-
-        $data=array_merge_without($proyek_summary, ['tender'], [
-            'proyek'=>array_merge_without($proyek_summary['proyek'], ['work_area']),
-            'estimate_cost' =>$after_diskon
-        ]);
+        $report=ProyekReportRepo::get_report($req['id_proyek']);
 
         return response()->json([
-            'data'  =>$data
+            'data'  =>$report
         ]);
     }
 
@@ -275,7 +228,7 @@ class ReportController extends Controller
         $req=$request->all();
 
         //ROLE AUTHENTICATION
-        if(!in_array($login_data['role'], ['admin', 'shipowner', 'shipyard', 'shipmanager'])){
+        if(!in_array($login_data['role'], ['admin', 'shipyard', 'shipmanager'])){
             return response()->json([
                 'error' =>"ACCESS_NOT_ALLOWED"
             ], 403);
@@ -288,12 +241,6 @@ class ReportController extends Controller
                 function($attr, $value, $fail)use($login_data){
                     //proyek
                     $p=ProyekModel::has("report")->where("id_proyek", $value);
-                    //--shipowner
-                    if($login_data['role']=="shipowner"){
-                        $p=$p->whereHas("kapal", function($query)use($login_data){
-                            $query->where("id_user", $login_data['id_user']);
-                        });
-                    }
                     //--shipyard
                     if($login_data['role']=="shipyard"){
                         $p=$p->whereHas("report.tender", function($query)use($login_data){
@@ -374,7 +321,7 @@ class ReportController extends Controller
         $req=$request->all();
 
         //ROLE AUTHENTICATION
-        if(!in_array($login_data['role'], ['admin', 'shipowner', 'shipyard', 'shipmanager'])){
+        if(!in_array($login_data['role'], ['admin', 'shipyard', 'shipmanager'])){
             return response()->json([
                 'error' =>"ACCESS_NOT_ALLOWED"
             ], 403);
@@ -386,25 +333,19 @@ class ReportController extends Controller
             'id_proyek_report_detail' =>[
                 "required",
                 Rule::exists("App\Models\ProyekReportDetailModel")->where(function($query)use($login_data){
-                    if(in_array($login_data['role'], ["shipowner", "shipyard"])){
+                    if(!in_array($login_data['role'], ["admin", "shipmanager"])){
                         $query->where("id_user", $login_data['id_user']);
                     }
                 }),
                 function($attr, $value, $fail)use($login_data){
                     //detail
-                    $b=ProyekReportDetailModel::with("summary")->where("id_proyek_report_detail", $value);
+                    $b=ProyekReportDetailModel::with("report")->where("id_proyek_report_detail", $value);
                     if($b->count()==0){
                         return $fail("The selected id proyek report detail is invalid.");
                     }
 
                     //proyek
-                    $p=ProyekModel::has("report")->where("id_proyek", $b->first()['summary']['id_proyek']);
-                    //--shipowner
-                    if($login_data['role']=="shipowner"){
-                        $p=$p->whereHas("kapal", function($query)use($login_data){
-                            $query->where("id_user", $login_data['id_user']);
-                        });
-                    }
+                    $p=ProyekModel::has("report")->where("id_proyek", $b->first()['report']['id_proyek']);
                     //--shipyard
                     if($login_data['role']=="shipyard"){
                         $p=$p->whereHas("report.tender", function($query)use($login_data){
@@ -480,7 +421,7 @@ class ReportController extends Controller
         $req=$request->all();
 
         //ROLE AUTHENTICATION
-        if(!in_array($login_data['role'], ['admin', 'shipowner', 'shipyard', 'shipmanager'])){
+        if(!in_array($login_data['role'], ['admin', 'shipyard', 'shipmanager'])){
             return response()->json([
                 'error' =>"ACCESS_NOT_ALLOWED"
             ], 403);
@@ -492,25 +433,19 @@ class ReportController extends Controller
             'id_proyek_report_detail' =>[
                 "required",
                 Rule::exists("App\Models\ProyekReportDetailModel")->where(function($query)use($login_data){
-                    if(in_array($login_data['role'], ["shipowner", "shipyard"])){
+                    if(!in_array($login_data['role'], ["admin", "shipmanager"])){
                         $query->where("id_user", $login_data['id_user']);
                     }
                 }),
                 function($attr, $value, $fail)use($login_data){
                     //detail
-                    $b=ProyekReportDetailModel::with("summary")->where("id_proyek_report_detail", $value);
+                    $b=ProyekReportDetailModel::with("report")->where("id_proyek_report_detail", $value);
                     if($b->count()==0){
-                        return $fail("the selected id proyek report detail is invalid.");
+                        return $fail("The selected id proyek report detail is invalid.");
                     }
 
                     //proyek
-                    $p=ProyekModel::has("report")->where("id_proyek", $b->first()['summary']['id_proyek']);
-                    //--shipowner
-                    if($login_data['role']=="shipowner"){
-                        $p=$p->whereHas("kapal", function($query)use($login_data){
-                            $query->where("id_user", $login_data['id_user']);
-                        });
-                    }
+                    $p=ProyekModel::has("report")->where("id_proyek", $b->first()['report']['id_proyek']);
                     //--shipyard
                     if($login_data['role']=="shipyard"){
                         $p=$p->whereHas("report.tender", function($query)use($login_data){
@@ -555,13 +490,13 @@ class ReportController extends Controller
         ]);
     }
 
-    public function gets_summary_detail(Request $request, $id)
+    public function gets_report_detail(Request $request, $id)
     {
         $login_data=$request['fm__login_data'];
         $req=$request->all();
 
         //ROLE AUTHENTICATION
-        if(!in_array($login_data['role'], ['admin', 'shipowner', 'shipyard', 'shipmanager'])){
+        if(!in_array($login_data['role'], ['admin', 'director', 'shipyard', 'shipmanager'])){
             return response()->json([
                 'error' =>"ACCESS_NOT_ALLOWED"
             ], 403);
@@ -581,12 +516,6 @@ class ReportController extends Controller
                 function($attr, $value, $fail)use($login_data){
                     //proyek
                     $p=ProyekModel::has("report")->where("id_proyek", $value);
-                    //--shipowner
-                    if($login_data['role']=="shipowner"){
-                        $p=$p->whereHas("kapal", function($query)use($login_data){
-                            $query->where("id_user", $login_data['id_user']);
-                        });
-                    }
                     //--shipyard
                     if($login_data['role']=="shipyard"){
                         $p=$p->whereHas("report.tender", function($query)use($login_data){
@@ -608,13 +537,7 @@ class ReportController extends Controller
         }
 
         //SUCCESS
-        $detail=ProyekReportDetailModel::with("created_by")->whereHas("summary", function($query)use($req){
-                $query->where("id_proyek", $req['id_proyek']);
-            })
-            ->where("type", $req['type'])
-            ->orderByDesc("id_proyek_report_detail")
-            ->paginate(trim($req['per_page']))
-            ->toArray();
+        $detail=ProyekReportRepo::gets_report_detail($req);
 
         return response()->json([
             'first_page'    =>1,
@@ -630,7 +553,7 @@ class ReportController extends Controller
         $req=$request->all();
 
         //ROLE AUTHENTICATION
-        if(!in_array($login_data['role'], ['admin', 'shipowner', 'shipyard', 'shipmanager'])){
+        if(!in_array($login_data['role'], ['admin', 'director', 'shipyard', 'shipmanager'])){
             return response()->json([
                 'error' =>"ACCESS_NOT_ALLOWED"
             ], 403);
@@ -643,19 +566,13 @@ class ReportController extends Controller
                 "required",
                 function($attr, $value, $fail)use($login_data){
                     //detail
-                    $b=ProyekReportDetailModel::with("summary")->where("id_proyek_report_detail", $value);
+                    $b=ProyekReportDetailModel::with("report")->where("id_proyek_report_detail", $value);
                     if($b->count()==0){
                         return $fail("the selected id proyek report detail is invalid.");
                     }
 
                     //proyek
-                    $p=ProyekModel::has("report")->where("id_proyek", $b->first()['summary']['id_proyek']);
-                    //--shipowner
-                    if($login_data['role']=="shipowner"){
-                        $p=$p->whereHas("kapal", function($query)use($login_data){
-                            $query->where("id_user", $login_data['id_user']);
-                        });
-                    }
+                    $p=ProyekModel::has("report")->where("id_proyek", $b->first()['report']['id_proyek']);
                     //--shipyard
                     if($login_data['role']=="shipyard"){
                         $p=$p->whereHas("report.tender", function($query)use($login_data){
@@ -677,10 +594,10 @@ class ReportController extends Controller
         }
 
         //SUCCESS
-        $detail=ProyekReportDetailModel::with("created_by")->where("id_proyek_report_detail", $req['id_proyek_report_detail'])->first();
+        $detail=ProyekReportRepo::get_report_detail($req['id_proyek_report_detail']);
 
         return response()->json([
-            'data'          =>$detail
+            'data'  =>$detail
         ]);
     }
 
@@ -691,7 +608,7 @@ class ReportController extends Controller
         $req=$request->all();
 
         //ROLE AUTHENTICATION
-        if(!in_array($login_data['role'], ['admin', 'shipowner', 'shipyard', 'shipmanager'])){
+        if(!in_array($login_data['role'], ['admin', 'shipyard', 'shipmanager'])){
             return response()->json([
                 'error' =>"ACCESS_NOT_ALLOWED"
             ], 403);
@@ -705,12 +622,7 @@ class ReportController extends Controller
                 function($attr, $value, $fail)use($login_data){
                     //proyek
                     $p=ProyekModel::has("report")->where("id_proyek", $value);
-                    //--shipowner
-                    if($login_data['role']=="shipowner"){
-                        $p=$p->whereHas("kapal", function($query)use($login_data){
-                            $query->where("id_user", $login_data['id_user']);
-                        });
-                    }
+                    
                     //--shipyard
                     if($login_data['role']=="shipyard"){
                         $p=$p->whereHas("report.tender", function($query)use($login_data){
@@ -762,13 +674,13 @@ class ReportController extends Controller
     }
 
     //PIC
-    public function gets_summary_pic(Request $request, $id)
+    public function gets_report_pic(Request $request, $id)
     {
         $login_data=$request['fm__login_data'];
         $req=$request->all();
 
         //ROLE AUTHENTICATION
-        if(!in_array($login_data['role'], ['admin', 'shipowner', 'shipyard', 'shipmanager'])){
+        if(!in_array($login_data['role'], ['admin', 'director', 'shipyard', 'shipmanager'])){
             return response()->json([
                 'error' =>"ACCESS_NOT_ALLOWED"
             ], 403);
@@ -782,12 +694,7 @@ class ReportController extends Controller
                 function($attr, $value, $fail)use($login_data){
                     //proyek
                     $p=ProyekModel::has("report")->where("id_proyek", $value);
-                    //--shipowner
-                    if($login_data['role']=="shipowner"){
-                        $p=$p->whereHas("kapal", function($query)use($login_data){
-                            $query->where("id_user", $login_data['id_user']);
-                        });
-                    }
+                    
                     //--shipyard
                     if($login_data['role']=="shipyard"){
                         $p=$p->whereHas("report.tender", function($query)use($login_data){
@@ -809,12 +716,7 @@ class ReportController extends Controller
         }
 
         //SUCCESS
-        $proyek_pic=ProyekReportPicModel::with("user")
-            ->whereHas("summary", function($query)use($req){
-                $query->where("id_proyek", $req['id_proyek']);
-            })
-            ->orderByDesc("updated_at")
-            ->get();
+        $proyek_pic=ProyekReportRepo::gets_pic($req);
 
         return response()->json([
             'data'  =>$proyek_pic

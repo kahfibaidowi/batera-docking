@@ -9,9 +9,8 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Database\Eloquent\Builder;
 use App\Models\KapalModel;
 use App\Models\UserModel;
-use App\Models\UserShipownerModel;
 use App\Models\ProyekModel;
-use App\Models\PerusahaanModel;
+use App\Repository\KapalRepo;
 
 class HomeController extends Controller
 {
@@ -23,30 +22,38 @@ class HomeController extends Controller
         $req=$request->all();
 
         //ROLE AUTHENTICATION
-        if(!in_array($login_data['role'], ['admin', 'shipowner', 'shipyard', 'shipmanager'])){
+        if(!in_array($login_data['role'], ['admin', 'director', 'shipyard', 'shipmanager'])){
             return response()->json([
                 'error' =>"ACCESS_NOT_ALLOWED"
             ], 403);
         }
 
+        //VALIDATION
+        $validation=Validator::make($req, [
+            'per_page'  =>[
+                Rule::requiredIf(!isset($req['per_page'])),
+                'integer',
+                'min:1'
+            ],
+            'q'         =>[
+                Rule::requiredIf(!isset($req['q']))
+            ]
+        ]);
+        if($validation->fails()){
+            return response()->json([
+                'error' =>"VALIDATION_ERROR",
+                'data'  =>$validation->errors()
+            ], 500);
+        }
+
         //SUCCESS
-        $kapal=KapalModel::with("owner", "perusahaan");
-        //shipowner
-        if($login_data['role']=="shipowner"){
-            $kapal=$kapal->where("id_user", $login_data['id_user']);
-        }
-        //shipyard
-        if($login_data['role']=="shipyard"){
-            $kapal=$kapal->whereHas("proyek.report.tender", function($query)use($login_data){
-                $query->where("id_user", $login_data['id_user']);
-            });
-        }
-        //get data
-        $kapal=$kapal->orderByDesc("id_kapal")
-            ->get()->toArray();
+        $kapal=KapalRepo::gets_kapal($req, $login_data);
 
         return response()->json([
-            'data'  =>$kapal
+            'first_page'    =>1,
+            'current_page'  =>$kapal['current_page'],
+            'last_page'     =>$kapal['last_page'],
+            'data'          =>$kapal['data']
         ]);
     }
 
@@ -56,7 +63,7 @@ class HomeController extends Controller
         $req=$request->all();
 
         //ROLE AUTHENTICATION
-        if(!in_array($login_data['role'], ['admin', 'shipowner', 'shipyard', 'shipmanager'])){
+        if(!in_array($login_data['role'], ['admin', 'director', 'shipyard', 'shipmanager'])){
             return response()->json([
                 'error' =>"ACCESS_NOT_ALLOWED"
             ], 403);
@@ -67,11 +74,7 @@ class HomeController extends Controller
         $validation=Validator::make($req, [
             'id_kapal'  =>[
                 "required",
-                Rule::exists("App\Models\KapalModel")->where(function($query)use($login_data){
-                    if($login_data['role']=="shipowner"){
-                        return $query->where("id_user", $login_data['id_user']);
-                    }
-                }),
+                Rule::exists("App\Models\KapalModel", "id_kapal"),
                 function($attr, $value, $fail)use($login_data){
                     $v=KapalModel::where("id_kapal", $value);
                     //shipyard
@@ -98,10 +101,7 @@ class HomeController extends Controller
         }
 
         //SUCCESS
-        $kapal=KapalModel::with("owner", "perusahaan", "proyek", "proyek.report", "proyek.report.tender")
-            ->where("id_kapal", $req['id_kapal'])
-            ->orderByDesc("id_kapal")
-            ->first()->toArray();
+        $kapal=KapalRepo::get_kapal($req['id_kapal'], $login_data);
 
         return response()->json([
             'data'  =>$kapal
@@ -114,7 +114,7 @@ class HomeController extends Controller
         $req=$request->all();
 
         //ROLE AUTHENTICATION
-        if(!in_array($login_data['role'], ['admin', 'shipowner', 'shipmanager'])){
+        if(!in_array($login_data['role'], ['admin', 'shipmanager'])){
             return response()->json([
                 'error' =>"ACCESS_NOT_ALLOWED"
             ], 403);
@@ -122,32 +122,6 @@ class HomeController extends Controller
 
         //VALIDATION
         $validation=Validator::make($req, [
-            'id_user'   =>[
-                'required',
-                function($attr, $value, $fail)use($login_data){
-                    $v=UserModel::where("id_user", $value)
-                        ->where("role", "shipowner");
-
-                    if($login_data['role']=="shipowner"){
-                        $v=$v->where("id_user", $login_data['id_user']);
-                    }
-
-                    if(is_null($v->first())){
-                        return $fail("The selected id user is invalid or role not shipowner");
-                    }
-                },
-                function($attr, $value, $fail){
-                    $v=UserShipownerModel::where("id_user", $value);
-                    if($v->count()>0){
-                        $vr=$v->first();
-                        if($vr['kapal_tersisa']<=0){
-                            return $fail("limit kapal runs out");
-                        }
-                    }
-                    return true;
-                }
-            ],
-            'id_perusahaan' =>"required|exists:App\Models\PerusahaanModel,id_perusahaan",
             'nama_kapal'=>"required",
             'foto'      =>[
                 'required',
@@ -169,19 +143,10 @@ class HomeController extends Controller
 
         //SUCCESS
         DB::transaction(function() use($req, $login_data){
-            //kapal
             KapalModel::create([
-                'id_user'   =>$req['id_user'],
                 'nama_kapal'=>$req['nama_kapal'],
-                'foto'      =>$req['foto'],
-                'id_perusahaan' =>$req['id_perusahaan']
+                'foto'      =>$req['foto']
             ]);
-
-            //user shipowner
-            UserShipownerModel::where("id_user", $req['id_user'])
-                ->update([
-                    'kapal_tersisa' =>DB::raw("kapal_tersisa-1")
-                ]);
         });
 
         return response()->json([
@@ -195,7 +160,7 @@ class HomeController extends Controller
         $req=$request->all();
 
         //ROLE AUTHENTICATION
-        if(!in_array($login_data['role'], ['admin', 'shipowner', 'shipmanager'])){
+        if(!in_array($login_data['role'], ['admin', 'shipmanager'])){
             return response()->json([
                 'error' =>"ACCESS_NOT_ALLOWED"
             ], 403);
@@ -204,14 +169,7 @@ class HomeController extends Controller
         //VALIDATION
         $req['id_kapal']=$id;
         $validation=Validator::make($req, [
-            'id_kapal'  =>[
-                "required",
-                Rule::exists("App\Models\KapalModel")->where(function($query)use($login_data){
-                    if($login_data['role']=="shipowner"){
-                        return $query->where("id_user", $login_data['id_user']);
-                    }
-                })
-            ]
+            'id_kapal'  =>"required|exists:App\Models\KapalModel,id_kapal"
         ]);
         if($validation->fails()){
             return response()->json([
@@ -222,15 +180,7 @@ class HomeController extends Controller
 
         //SUCCESS
         DB::transaction(function() use($req, $login_data){
-            //kapal
-            $kapal=KapalModel::where("id_kapal", $req['id_kapal'])->first();
             KapalModel::where("id_kapal", $req['id_kapal'])->delete();
-
-            //user shipowner
-            UserShipownerModel::where("id_user", $kapal['id_user'])
-                ->update([
-                    'kapal_tersisa' =>DB::raw("kapal_tersisa+1")
-                ]);
         });
 
         return response()->json([
@@ -244,7 +194,7 @@ class HomeController extends Controller
         $req=$request->all();
 
         //ROLE AUTHENTICATION
-        if(!in_array($login_data['role'], ['admin', 'shipowner', 'shipmanager'])){
+        if(!in_array($login_data['role'], ['admin', 'shipmanager'])){
             return response()->json([
                 'error' =>"ACCESS_NOT_ALLOWED"
             ], 403);
@@ -253,14 +203,7 @@ class HomeController extends Controller
         //VALIDATION
         $req['id_kapal']=$id;
         $validation=Validator::make($req, [
-            'id_kapal'  =>[
-                "required",
-                Rule::exists("App\Models\KapalModel")->where(function($query)use($login_data){
-                    if($login_data['role']=="shipowner"){
-                        return $query->where("id_user", "!=", $login_data['id_user']);
-                    }
-                })
-            ],
+            'id_kapal'  =>"required|exists:App\Models\KapalModel,id_kapal",
             'nama_kapal'=>"required",
             'foto'      =>[
                 'required',
@@ -271,8 +214,7 @@ class HomeController extends Controller
                     }
                     return $fail($attr." image not found");
                 }
-            ],
-            'id_perusahaan' =>"required|exists:App\Models\PerusahaanModel,id_perusahaan"
+            ]
         ]);
         if($validation->fails()){
             return response()->json([
@@ -282,12 +224,11 @@ class HomeController extends Controller
         }
 
         //SUCCESS
-        DB::transaction(function() use($req, $login_data){
+        DB::transaction(function() use($req){
             KapalModel::where("id_kapal", $req['id_kapal'])
                 ->update([
                     'nama_kapal'=>$req['nama_kapal'],
-                    'foto'      =>$req['foto'],
-                    'id_perusahaan' =>$req['id_perusahaan']
+                    'foto'      =>$req['foto']
                 ]);
         });
 

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Validator;
@@ -11,6 +12,8 @@ use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
 use App\Models\UserModel;
 use App\Models\UserLoginModel;
+use App\Repository\UserLoginRepo;
+use App\Repository\UserRepo;
 
 class AuthController extends Controller
 {
@@ -105,8 +108,7 @@ class AuthController extends Controller
         $login_data=$request['fm__login_data'];
         $req=$request->all();
 
-        $user=UserModel::where("id_user", $login_data['id_user'])
-            ->first();
+        $user=UserRepo::get_user($login_data['id_user']);
 
         return response()->json([
             'data'  =>$user
@@ -120,9 +122,20 @@ class AuthController extends Controller
 
         //VALIDATION
         $validation=Validator::make($req, [
-            'email'     =>"required|email",
-            'username'  =>"required",
-            'nama_lengkap'  =>"required|regex:/^[\pL\s\-]+$/u",
+            'email'     =>[
+                "required",
+                "email",
+                Rule::unique("App\Models\UserModel")->where(function($query)use($login_data){
+                    return $query->where("id_user", "!=", $login_data['id_user']);
+                })
+            ],
+            'username'  =>[
+                "required",
+                Rule::unique("App\Models\UserModel")->where(function($query)use($login_data){
+                    return $query->where("id_user", "!=", $login_data['id_user']);
+                })
+            ],
+            'nama_lengkap'  =>"required",
             'no_hp'     =>[
                 Rule::requiredIf(!isset($req['no_hp'])),
                 'numeric'
@@ -142,18 +155,6 @@ class AuthController extends Controller
             ], 500);
         }
 
-        //EMAIL & USERNAME
-        $user=UserModel::where(function($query)use($req){
-                $query->where("email", $req['email'])
-                    ->orWhere("username", $req['username']);
-            })
-            ->where("id_user", "!=", $login_data['id_user']);
-        if($user->count()>0){
-            return response()->json([
-                'error' =>"EMAIL_USERNAME_USED"
-            ], 500);
-        }
-
         //SUCCESS
         $data_update=[
             'email'         =>$req['email'],
@@ -168,8 +169,9 @@ class AuthController extends Controller
             ]);
         }
         
-        UserModel::where("id_user", $login_data['id_user'])
-            ->update($data_update);
+        DB::transaction(function()use($login_data, $data_update){
+            UserModel::where("id_user", $login_data['id_user'])->update($data_update);
+        });
 
         return response()->json([
             'status'    =>"ok"
@@ -190,8 +192,9 @@ class AuthController extends Controller
             }
         }
 
-        UserLoginModel::where("id_user_login", $id_user_login)
-            ->delete();
+        DB::transaction(function()use($id_user_login){
+            UserLoginModel::where("id_user_login", $id_user_login)->delete();
+        });
 
         return response()->json([
             'status'=>"ok"
@@ -219,9 +222,11 @@ class AuthController extends Controller
         }
 
         //SUCCESS
-        $user_tokens=UserLoginModel::where("id_user", $login_data['id_user'])
-            ->orderByDesc("id_user_login")
-            ->paginate(trim($req['per_page']))->toArray();
+        $params=array_merge($req, [
+            'q'             =>"",
+            'token_status'  =>""
+        ]);
+        $user_tokens=UserLoginRepo::gets_user_login($params);
 
         return response()->json([
             'first_page'    =>1,
@@ -255,8 +260,9 @@ class AuthController extends Controller
         }
 
         //SUCCESS
-        UserLoginModel::where("id_user_login", $req['id_user_login'])
-            ->delete();
+        DB::transaction(function()use($req){
+            UserLoginModel::where("id_user_login", $req['id_user_login'])->delete();
+        });
 
         return response()->json([
             'status'=>"ok"
@@ -270,8 +276,7 @@ class AuthController extends Controller
             case "expired":
                 return $this->delete_token_expired($request);
             break;
-            
-            
+
         }
     }
 
@@ -281,9 +286,11 @@ class AuthController extends Controller
         $req=$request->all();
 
         //SUCCESS
-        UserLoginModel::where("expired", "<", date("Y-m-d H:i:s"))
-            ->where("id_user", $login_data['id_user'])
-            ->delete();
+        DB::transaction(function()use($login_data){
+            UserLoginModel::where("expired", "<", date("Y-m-d H:i:s"))
+                ->where("id_user", $login_data['id_user'])
+                ->delete();
+        });
 
         return response()->json([
             'status'=>"ok"

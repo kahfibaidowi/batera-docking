@@ -11,6 +11,7 @@ use App\Models\ProyekModel;
 use App\Models\ProyekReportModel;
 use App\Models\KapalModel;
 use App\Models\TenderModel;
+use App\Repository\KapalRepo;
 
 class TrackingController extends Controller
 {
@@ -21,7 +22,7 @@ class TrackingController extends Controller
         $req=$request->all();
 
         //ROLE AUTHENTICATION
-        if(!in_array($login_data['role'], ['admin', 'shipowner', 'shipmanager'])){
+        if(!in_array($login_data['role'], ['admin', 'director', 'shipmanager'])){
             return response()->json([
                 'error' =>"ACCESS_NOT_ALLOWED"
             ], 403);
@@ -46,15 +47,7 @@ class TrackingController extends Controller
         }
 
         //SUCCESS
-        $kapal=KapalModel::with("owner", "perusahaan", "proyek", "proyek.report", "proyek.report.tender");
-        $kapal=$kapal->where("nama_kapal", "ilike", "%".$req['q']."%");
-        //shipowner
-        if($login_data['role']=="shipowner"){
-            $kapal=$kapal->where("id_user", $login_data['id_user']);
-        }
-        //get data
-        $kapal=$kapal->orderByDesc("id_kapal")
-            ->paginate(trim($req['per_page']))->toArray();
+        $kapal=KapalRepo::gets_tracking_kapal($req, $login_data);
 
         return response()->json([
             'first_page'    =>1,

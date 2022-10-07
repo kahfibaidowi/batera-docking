@@ -3,10 +3,13 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 use App\Models\UserLoginModel;
 use App\Models\UserModel;
+use App\Repository\UserLoginRepo;
+use App\Repository\UserRepo;
 
 class UserLoginController extends Controller
 {
@@ -15,6 +18,13 @@ class UserLoginController extends Controller
     {
         $login_data=$request['fm__login_data'];
         $req=$request->all();
+        
+        //ROLE AUTHENTICATION
+        if(!in_array($login_data['role'], ['admin'])){
+            return response()->json([
+                'error' =>"ACCESS_NOT_ALLOWED"
+            ], 403);
+        }
 
         //VALIDATION
         $validation=Validator::make($req, [
@@ -24,12 +34,11 @@ class UserLoginController extends Controller
                 'min:1'
             ],
             'q'         =>[
-                'regex:/^[\pL\s\-]+$/u',
                 Rule::requiredIf(!isset($req['q']))
             ],
             'token_status'=>[
-                'required',
-                Rule::in(["all", "expired", "not_expired"])
+                Rule::requiredIf(!isset($req['token_status'])),
+                Rule::in(["expired", "not_expired"])
             ]
         ]);
         if($validation->fails()){
@@ -40,26 +49,7 @@ class UserLoginController extends Controller
         }
 
         //SUCCESS
-        $users_login=UserLoginModel::query();
-        //with user
-        $users_login=$users_login->whereHas("user", function($q) use($req){
-            $q->where("nama_lengkap", "ilike", "%".$req['q']."%");
-        });
-        $users_login=$users_login->with("user:id_user,nama_lengkap,jabatan,avatar_url,role");
-        //token status
-        switch($req['token_status']){
-            case "expired":
-                $users_login=$users_login->where("expired", "<", date("Y-m-d H:i:s"));
-            break;
-            case "not_expired":
-                $users_login=$users_login->where("expired", ">=", date("Y-m-d H:i:s"));
-            break;
-        }
-
-        //order & paginate
-        $users_login=$users_login
-            ->orderByDesc("id_user_login")
-            ->paginate(trim($req['per_page']))->toArray();
+        $users_login=UserLoginRepo::gets_user_login($req);
 
         return response()->json([
             'first_page'    =>1,
@@ -74,6 +64,13 @@ class UserLoginController extends Controller
     {
         $login_data=$request['fm__login_data'];
         $req=$request->all();
+        
+        //ROLE AUTHENTICATION
+        if(!in_array($login_data['role'], ['admin'])){
+            return response()->json([
+                'error' =>"ACCESS_NOT_ALLOWED"
+            ], 403);
+        }
 
         //VALIDATION
         $req['id_user_login']=$id;
@@ -88,8 +85,9 @@ class UserLoginController extends Controller
         }
 
         //SUCCESS
-        UserLoginModel::where("id_user_login", $req['id_user_login'])
-            ->delete();
+        DB::transaction(function()use($req){
+            UserLoginModel::where("id_user_login", $req['id_user_login'])->delete();
+        });
 
         return response()->json([
             'status'=>"ok"
@@ -108,9 +106,20 @@ class UserLoginController extends Controller
     }
     private function delete_expired(Request $request)
     {
+        $login_data=$request['fm__login_data'];
+        $req=$request->all();
+        
+        //ROLE AUTHENTICATION
+        if(!in_array($login_data['role'], ['admin'])){
+            return response()->json([
+                'error' =>"ACCESS_NOT_ALLOWED"
+            ], 403);
+        }
+
         //SUCCESS
-        UserLoginModel::where("expired", "<", date("Y-m-d H:i:s"))
-            ->delete();
+        DB::transaction(function(){
+            UserLoginModel::where("expired", "<", date("Y-m-d H:i:s"))->delete();
+        });
 
         return response()->json([
             'status'=>"ok"

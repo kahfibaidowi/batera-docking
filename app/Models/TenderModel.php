@@ -13,29 +13,19 @@ class TenderModel extends Model{
         'id_proyek',
         'id_user',
         'dokumen_kontrak',
+        'no_kontrak',
+        'komentar',
+        'nama_galangan',
+        'lokasi_galangan',
         'yard_total_quote',
         'general_diskon_persen',
         'additional_diskon',
         'sum_internal_adjusment',
-        'work_area',
-        'status'
+        'work_area'
     ];
-    
     protected $casts=[
-        'work_area' =>'array'
+        'work_area'     =>'array'
     ];
-
-    protected $hidden=['status'];
-
-    /*
-     *#CUSTOM ATTR
-     *
-     */
-    protected $appends=['published'];
-
-    public function getPublishedAttribute(){
-        return $this->status=="published"?true:false;
-    }
 
 
     /*

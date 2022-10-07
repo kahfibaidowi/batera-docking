@@ -21,7 +21,7 @@ class CreateUsersTable extends Migration
             $table->text("nama_lengkap");
             $table->text("jabatan");
             $table->text("no_hp");
-            $table->text("user_id");
+            $table->text("departemen_id");
             $table->text("departemen");
             $table->text("email")->unique();
             $table->text("password");

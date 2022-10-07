@@ -8,7 +8,6 @@ use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
-use App\Jobs\SendEmailJob;
 use App\Models\PengaturanModel;
 
 class PengaturanController extends Controller
@@ -58,6 +57,13 @@ class PengaturanController extends Controller
     {
         $login_data=$request['fm__login_data'];
         $req=$request->all();
+        
+        //ROLE AUTHENTICATION
+        if(!in_array($login_data['role'], ['admin'])){
+            return response()->json([
+                'error' =>"ACCESS_NOT_ALLOWED"
+            ], 403);
+        }
 
         //VALIDATION
         $validation=Validator::make($req, [

@@ -24,7 +24,7 @@ class DatabaseSeeder extends Seeder
             'nama_kapal'    =>"-",
             'title'         =>"",
             'departemen'    =>"",
-            'user_id'       =>"",
+            'departemen_id' =>"",
             'jabatan'       =>"admin",
             'no_hp'         =>"",
             'email'         =>"admin@gmail.com",
@@ -38,7 +38,7 @@ class DatabaseSeeder extends Seeder
             'nama_kapal'    =>"-",
             'title'         =>"",
             'departemen'    =>"",
-            'user_id'       =>"",
+            'departemen_id' =>"",
             'jabatan'       =>"fleet manager",
             'no_hp'         =>"",
             'email'         =>"febifm@gmail.com",
@@ -52,7 +52,7 @@ class DatabaseSeeder extends Seeder
             'nama_kapal'    =>"-",
             'title'         =>"",
             'departemen'    =>"",
-            'user_id'       =>"",
+            'departemen_id' =>"",
             'jabatan'       =>"ship yard",
             'no_hp'         =>"",
             'email'         =>"febicm@gmail.com",
@@ -62,31 +62,17 @@ class DatabaseSeeder extends Seeder
         ]);
         UserModel::create([
             'username'      =>"F_MD",
-            'nama_lengkap'  =>"Febi Ship Owner",
+            'nama_lengkap'  =>"Febi Director",
             'nama_kapal'    =>"-",
             'title'         =>"",
             'departemen'    =>"",
-            'user_id'       =>"",
-            'jabatan'       =>"ship owner",
+            'departemen_id' =>"",
+            'jabatan'       =>"Director",
             'no_hp'         =>"",
             'email'         =>"febimd@gmail.com",
             'password'      =>Hash::make("febii"),
             'avatar_url'    =>"",
-            'role'          =>"shipowner",
-        ]);
-        UserModel::create([
-            'username'      =>"F_PD",
-            'nama_lengkap'  =>"Febi Provider",
-            'nama_kapal'    =>"-",
-            'title'         =>"",
-            'departemen'    =>"",
-            'user_id'       =>"",
-            'jabatan'       =>"provider",
-            'no_hp'         =>"",
-            'email'         =>"febipd@gmail.com",
-            'password'      =>Hash::make("febii"),
-            'avatar_url'    =>"",
-            'role'          =>"provider",
+            'role'          =>"director",
         ]);
 
         //USER LOGIN
@@ -113,12 +99,6 @@ class DatabaseSeeder extends Seeder
         UserLoginModel::create([
             'id_user'       =>4,
             'login_token'   =>Crypt::encryptString("eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpYXQiOjE2NjM1NTkzMDYsIm5iZiI6MTY2MzU1OTMwNiwiZXhwIjoxNjcyMTk5MzA2LCJ1aWQiOjR9.cWL_00NT9f_fezkOJX0oPM0mKueTDZcFjuA4OUwmchE"),
-            'expired'       =>date('Y-m-d H:i:s', $time+$expired),
-            'device_info'   =>"test"
-        ]);
-        UserLoginModel::create([
-            'id_user'       =>5,
-            'login_token'   =>Crypt::encryptString("eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpYXQiOjE2NjM1NTkzMDYsIm5iZiI6MTY2MzU1OTMwNiwiZXhwIjoxNjcyMTk5MzA2LCJ1aWQiOjV9.mxj1qNejK7bctyJVn8LbuvGvnPfQDAkaPceel7Es_gQ"),
             'expired'       =>date('Y-m-d H:i:s', $time+$expired),
             'device_info'   =>"test"
         ]);
