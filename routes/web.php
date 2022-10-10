@@ -112,6 +112,7 @@ $router->group(['prefix'=>"/report", 'middleware'=>"auth"], function()use($route
     $router->get("/proyek/{id}/detail", ['uses'=>"ReportController@gets_report_detail"]);
     //--proyek summary work area
     $router->put("/proyek/{id}/work_area", ['uses'=>"ReportController@update_report_work_area"]);
+    $router->put("/proyek/{id}/variant_work", ['uses'=>"ReportController@update_report_variant_work"]);
     //--proyek summary pic
     $router->get("/proyek/{id}/pic", ['uses'=>"ReportController@gets_report_pic"]);
 });

@@ -672,6 +672,77 @@ class ReportController extends Controller
             'status'=>"ok"
         ]);
     }
+    
+    public function update_report_variant_work(Request $request, $id)
+    {
+        $login_data=$request['fm__login_data'];
+        $req=$request->all();
+
+        //ROLE AUTHENTICATION
+        if(!in_array($login_data['role'], ['admin', 'shipyard', 'shipmanager'])){
+            return response()->json([
+                'error' =>"ACCESS_NOT_ALLOWED"
+            ], 403);
+        }
+
+        //VALIDATION
+        $req['id_proyek']=$id;
+        $validation=Validator::make($req, [
+            'id_proyek'  =>[
+                "required",
+                function($attr, $value, $fail)use($login_data){
+                    //proyek
+                    $p=ProyekModel::has("report")->where("id_proyek", $value);
+                    
+                    //--shipyard
+                    if($login_data['role']=="shipyard"){
+                        $p=$p->whereHas("report.tender", function($query)use($login_data){
+                            $query->where("id_user", $login_data['id_user']);
+                        });
+                    }
+                    if($p->count()==0){
+                        return $fail("The selected id proyek is invalid.");
+                    }
+                    return true;
+                }
+            ],
+            'variant_work' =>"required"
+        ]);
+        if($validation->fails()){
+            return response()->json([
+                'error' =>"VALIDATION_ERROR",
+                'data'  =>$validation->errors()
+            ], 500);
+        }
+
+        //SUCCESS
+        DB::transaction(function() use($req, $login_data){
+            $proyek_report=ProyekReportModel::where("id_proyek", $req['id_proyek'])->first();
+
+            //report
+            ProyekReportModel::where("id_proyek", $req['id_proyek'])
+                ->update([
+                    'variant_work' =>$req['variant_work']
+                ]);
+            
+            //pic
+            $pic=ProyekReportPicModel::where("id_proyek_report", $proyek_report['id_proyek_report'])
+                ->where("id_user", $login_data['id_user']);
+            if($pic->count()>0){
+                $pic->touch();
+            }
+            else{
+                ProyekReportPicModel::create([
+                    'id_proyek_report'  =>$proyek_report['id_proyek_report'],
+                    'id_user'   =>$login_data['id_user']
+                ]);
+            }
+        });
+
+        return response()->json([
+            'status'=>"ok"
+        ]);
+    }
 
     //PIC
     public function gets_report_pic(Request $request, $id)

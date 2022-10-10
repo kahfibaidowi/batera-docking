@@ -31,6 +31,7 @@ return new class extends Migration
             $table->text("partner");
             $table->text("deskripsi");
             $table->text("work_area")->nullable()->comment("list pekerjaan/work area, data berbentuk json");
+            $table->text("variant_work")->nullable()->comment("additional jobs work area, data berbentuk json");
             $table->timestamps();
 
             //fk

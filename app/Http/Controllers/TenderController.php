@@ -97,7 +97,8 @@ class TenderController extends Controller
                 'komentar'          =>$req['komentar'],
                 'nama_galangan'     =>$req['nama_galangan'],
                 'lokasi_galangan'   =>$req['lokasi_galangan'],
-                'work_area'         =>null
+                'work_area'         =>null,
+                'variant_work'      =>null
             ]);
         });
 
