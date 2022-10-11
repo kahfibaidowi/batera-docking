@@ -88,6 +88,7 @@ $router->group(['prefix'=>"/proyek", 'middleware'=>"auth"], function()use($route
 $router->group(['prefix'=>"/tender", 'middleware'=>"auth"], function()use($router){
     $router->post("/", ['uses'=>"TenderController@add_tender"]);
     $router->get("/", ['uses'=>"TenderController@gets_tender"]);
+    $router->get("/{id}", ['uses'=>"TenderController@get_tender"]);
     $router->put("/{id}", ['uses'=>"TenderController@update_tender"]);
     $router->delete("/{id}", ['uses'=>"TenderController@delete_tender"]);
     $router->get("/proyek/{id}", ['uses'=>"TenderController@gets_tender_proyek"]);

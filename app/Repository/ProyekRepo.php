@@ -33,8 +33,8 @@ class ProyekRepo{
         
         //data
         $proyek=$proyek->first()->toArray();
-        $proyek['report']=!is_null($proyek['report'])?array_merge_without($proyek['report'], ['tender']):null;
         $proyek['tender']=!is_null($proyek['report'])?$proyek['report']['tender']:null;
+        $proyek['report']=!is_null($proyek['report'])?array_merge_without($proyek['report'], ['tender']):null;
 
         //return
         return $proyek;
