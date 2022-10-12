@@ -135,6 +135,40 @@ class FileController extends Controller
         return response($file, 200)->header('Content-Type', $file_info->buffer($file));
     }
 
+    public function gets_attachment(Request $request)
+    {
+        $login_data=$request['fm__login_data'];
+        $req=$request->all();
+
+        //VALIDATION
+        $validation=Validator::make($req, [
+            'per_page'  =>[
+                Rule::requiredIf(!isset($req['per_page'])),
+                'integer',
+                'min:1'
+            ],
+            'q'         =>[
+                Rule::requiredIf(!isset($req['q']))
+            ]
+        ]);
+        if($validation->fails()){
+            return response()->json([
+                'error' =>"VALIDATION_ERROR",
+                'data'  =>$validation->errors()
+            ], 500);
+        }
+
+        //SUCCESS
+        $attachment=AttachmentRepo::gets_attachment($req);
+
+        return response()->json([
+            'first_page'    =>1,
+            'current_page'  =>$attachment['current_page'],
+            'last_page'     =>$attachment['last_page'],
+            'data'          =>$attachment['data']
+        ]);
+    }
+
     public function delete_attachment(Request $request, $id)
     {
         $login_data=$request['fm__login_data'];

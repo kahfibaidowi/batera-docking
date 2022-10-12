@@ -148,3 +148,4 @@ $router->group(['prefix'=>"/file", 'middleware'=>"auth"], function()use($router)
 });
 $router->get("/file/show/{file}", ['uses'=>"FileController@show"]);
 $router->get("/file/attachment/{id}", ['uses'=>"FileController@get_attachment"]);
+$router->get("/file/attachment", ['uses'=>"FileController@gets_attachment"]);
