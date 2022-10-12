@@ -10,6 +10,8 @@ use App\Models\ProyekModel;
 use App\Models\ProyekReportModel;
 use App\Models\ProyekReportDetailModel;
 use App\Models\ProyekReportPicModel;
+use App\Models\ProyekReportCatatanModel;
+use App\Models\ProyekReportProgressPekerjaanModel;
 use App\Repository\ProyekReportRepo;
 
 class ReportController extends Controller
@@ -221,7 +223,7 @@ class ReportController extends Controller
         ]);
     }
 
-    //SUMMARY DETAIL
+    //REPORT DETAIL
     public function add_detail(Request $request)
     {
         $login_data=$request['fm__login_data'];
@@ -791,6 +793,588 @@ class ReportController extends Controller
 
         return response()->json([
             'data'  =>$proyek_pic
+        ]);
+    }
+
+    //REPORT CATATAN
+    public function add_catatan(Request $request)
+    {
+        $login_data=$request['fm__login_data'];
+        $req=$request->all();
+
+        //ROLE AUTHENTICATION
+        if(!in_array($login_data['role'], ['admin', 'shipyard', 'shipmanager'])){
+            return response()->json([
+                'error' =>"ACCESS_NOT_ALLOWED"
+            ], 403);
+        }
+
+        //VALIDATION
+        $validation=Validator::make($req, [
+            'id_proyek' =>[
+                "required",
+                function($attr, $value, $fail)use($login_data){
+                    //proyek
+                    $p=ProyekModel::has("report")->where("id_proyek", $value);
+                    //--shipyard
+                    if($login_data['role']=="shipyard"){
+                        $p=$p->whereHas("report.tender", function($query)use($login_data){
+                            $query->where("id_user", $login_data['id_user']);
+                        });
+                    }
+                    if($p->count()==0){
+                        return $fail("The selected id proyek is invalid.");
+                    }
+                    return true;
+                }
+            ],
+            'catatan'   =>[
+                Rule::requiredIf(!isset($req['catatan']))
+            ]
+        ]);
+        if($validation->fails()){
+            return response()->json([
+                'error' =>"VALIDATION_ERROR",
+                'data'  =>$validation->errors()
+            ], 500);
+        }
+
+        //SUCCESS
+        $catatan=(object)[];
+        DB::transaction(function() use($req, $login_data, &$catatan){
+            $proyek_summary=ProyekReportModel::where("id_proyek", $req['id_proyek'])->first();
+
+            $create=ProyekReportCatatanModel::create([
+                'id_proyek_report'  =>$proyek_summary['id_proyek_report'],
+                'catatan'           =>$req['catatan']
+            ]);
+            $catatan=$create;
+
+            //pic
+            $pic=ProyekReportPicModel::where("id_proyek_report", $proyek_summary['id_proyek_report'])
+                ->where("id_user", $login_data['id_user']);
+            if($pic->count()>0){
+                $pic->touch();
+            }
+            else{
+                ProyekReportPicModel::create([
+                    'id_proyek_report'  =>$proyek_summary['id_proyek_report'],
+                    'id_user'   =>$login_data['id_user']
+                ]);
+            }
+        });
+
+        return response()->json([
+            'status'=>"ok",
+            'data'  =>$catatan
+        ]);
+    }
+
+    public function update_catatan(Request $request, $id)
+    {
+        $login_data=$request['fm__login_data'];
+        $req=$request->all();
+
+        //ROLE AUTHENTICATION
+        if(!in_array($login_data['role'], ['admin', 'shipmanager'])){
+            return response()->json([
+                'error' =>"ACCESS_NOT_ALLOWED"
+            ], 403);
+        }
+
+        //VALIDATION
+        $req['id_proyek_report_catatan']=$id;
+        $validation=Validator::make($req, [
+            'id_proyek_report_catatan' =>[
+                "required",
+                Rule::exists("App\Models\ProyekReportCatatanModel")
+            ],
+            'catatan'   =>[
+                Rule::requiredIf(!isset($req['catatan']))
+            ]
+        ]);
+        if($validation->fails()){
+            return response()->json([
+                'error' =>"VALIDATION_ERROR",
+                'data'  =>$validation->errors()
+            ], 500);
+        }
+
+        //SUCCESS
+        $catatan=(object)[];
+        DB::transaction(function() use($req, $login_data, &$catatan){
+            $proyek_report=ProyekReportCatatanModel::where("id_proyek_report_catatan", $req['id_proyek_report_catatan'])->first();
+            $proyek_report->update([
+                'catatan'   =>$req['catatan']
+            ]);
+            $catatan=$proyek_report;
+            
+            //pic
+            $pic=ProyekReportPicModel::where("id_proyek_report", $proyek_report['id_proyek_report'])
+                ->where("id_user", $login_data['id_user']);
+            if($pic->count()>0){
+                $pic->touch();
+            }
+            else{
+                ProyekReportPicModel::create([
+                    'id_proyek_report'  =>$proyek_report['id_proyek_report'],
+                    'id_user'   =>$login_data['id_user']
+                ]);
+            }
+        });
+
+        return response()->json([
+            'status'=>"ok",
+            'data'  =>$catatan
+        ]);
+    }
+
+    public function delete_catatan(Request $request, $id)
+    {
+        $login_data=$request['fm__login_data'];
+        $req=$request->all();
+
+        //ROLE AUTHENTICATION
+        if(!in_array($login_data['role'], ['admin', 'shipmanager'])){
+            return response()->json([
+                'error' =>"ACCESS_NOT_ALLOWED"
+            ], 403);
+        }
+
+        //VALIDATION
+        $req['id_proyek_report_catatan']=$id;
+        $validation=Validator::make($req, [
+            'id_proyek_report_catatan' =>[
+                "required",
+                Rule::exists("App\Models\ProyekReportCatatanModel")
+            ],
+        ]);
+        if($validation->fails()){
+            return response()->json([
+                'error' =>"VALIDATION_ERROR",
+                'data'  =>$validation->errors()
+            ], 500);
+        }
+
+        //SUCCESS
+        DB::transaction(function() use($req, $login_data){
+            $proyek_report=ProyekReportCatatanModel::where("id_proyek_report_catatan", $req['id_proyek_report_catatan'])->first();
+            $proyek_report->delete();
+
+            //pic
+            $pic=ProyekReportPicModel::where("id_proyek_report", $proyek_report['id_proyek_report'])
+                ->where("id_user", $login_data['id_user']);
+            if($pic->count()>0){
+                $pic->touch();
+            }
+            else{
+                ProyekReportPicModel::create([
+                    'id_proyek_report'  =>$proyek_report['id_proyek_report'],
+                    'id_user'   =>$login_data['id_user']
+                ]);
+            }
+        });
+
+        return response()->json([
+            'status'=>"ok"
+        ]);
+    }
+
+    public function gets_report_catatan(Request $request, $id)
+    {
+        $login_data=$request['fm__login_data'];
+        $req=$request->all();
+
+        //ROLE AUTHENTICATION
+        if(!in_array($login_data['role'], ['admin', 'director', 'shipyard', 'shipmanager'])){
+            return response()->json([
+                'error' =>"ACCESS_NOT_ALLOWED"
+            ], 403);
+        }
+
+        //VALIDATION
+        $req['id_proyek']=$id;
+        $validation=Validator::make($req, [
+            'id_proyek' =>[
+                "required",
+                Rule::exists("App\Models\ProyekReportModel", "id_proyek")
+            ],
+            'per_page'  =>[
+                Rule::requiredIf(!isset($req['per_page'])),
+                "integer",
+                "min:1"
+            ]
+        ]);
+        if($validation->fails()){
+            return response()->json([
+                'error' =>"VALIDATION_ERROR",
+                'data'  =>$validation->errors()
+            ], 500);
+        }
+
+        //SUCCESS
+        $catatan=ProyekReportRepo::gets_report_catatan($req);
+
+        return response()->json([
+            'first_page'    =>1,
+            'current_page'  =>$catatan['current_page'],
+            'last_page'     =>$catatan['last_page'],
+            'data'          =>$catatan['data']
+        ]);
+    }
+
+    public function get_catatan(Request $request, $id)
+    {
+        $login_data=$request['fm__login_data'];
+        $req=$request->all();
+
+        //ROLE AUTHENTICATION
+        if(!in_array($login_data['role'], ['admin', 'director', 'shipyard', 'shipmanager'])){
+            return response()->json([
+                'error' =>"ACCESS_NOT_ALLOWED"
+            ], 403);
+        }
+
+        //VALIDATION
+        $req['id_proyek_report_catatan']=$id;
+        $validation=Validator::make($req, [
+            'id_proyek_report_catatan' =>[
+                "required",
+                Rule::exists("App\Models\ProyekReportCatatanModel", "id_proyek_report_catatan")
+            ]
+        ]);
+        if($validation->fails()){
+            return response()->json([
+                'error' =>"VALIDATION_ERROR",
+                'data'  =>$validation->errors()
+            ], 500);
+        }
+
+        //SUCCESS
+        $catatan=ProyekReportRepo::get_report_catatan($req['id_proyek_report_catatan']);
+
+        return response()->json([
+            'data'  =>$catatan
+        ]);
+    }
+
+    public function gets_catatan_by_id(Request $request)
+    {
+        $login_data=$request['fm__login_data'];
+        $req=$request->all();
+
+        //ROLE AUTHENTICATION
+        if(!in_array($login_data['role'], ['admin', 'director', 'shipyard', 'shipmanager'])){
+            return response()->json([
+                'error' =>"ACCESS_NOT_ALLOWED"
+            ], 403);
+        }
+
+        //VALIDATION
+        $validation=Validator::make($req, [
+            'id_proyek_report_catatan'  =>"required|array"
+        ]);
+        if($validation->fails()){
+            return response()->json([
+                'error' =>"VALIDATION_ERROR",
+                'data'  =>$validation->errors()
+            ], 500);
+        }
+
+        //SUCCESS
+        $catatan=ProyekReportRepo::gets_report_catatan_by_id($req);
+
+        return response()->json([
+            'data'  =>$catatan
+        ]);
+    }
+
+    //REPORT PROGRESS PEKERJAAN
+    public function add_progress(Request $request)
+    {
+        $login_data=$request['fm__login_data'];
+        $req=$request->all();
+
+        //ROLE AUTHENTICATION
+        if(!in_array($login_data['role'], ['admin', 'shipyard', 'shipmanager'])){
+            return response()->json([
+                'error' =>"ACCESS_NOT_ALLOWED"
+            ], 403);
+        }
+
+        //VALIDATION
+        $validation=Validator::make($req, [
+            'id_proyek' =>[
+                "required",
+                function($attr, $value, $fail)use($login_data){
+                    //proyek
+                    $p=ProyekModel::has("report")->where("id_proyek", $value);
+                    //--shipyard
+                    if($login_data['role']=="shipyard"){
+                        $p=$p->whereHas("report.tender", function($query)use($login_data){
+                            $query->where("id_user", $login_data['id_user']);
+                        });
+                    }
+                    if($p->count()==0){
+                        return $fail("The selected id proyek is invalid.");
+                    }
+                    return true;
+                }
+            ],
+            'progress'  =>"required|between:0,100"
+        ]);
+        if($validation->fails()){
+            return response()->json([
+                'error' =>"VALIDATION_ERROR",
+                'data'  =>$validation->errors()
+            ], 500);
+        }
+
+        //SUCCESS
+        $progress=(object)[];
+        DB::transaction(function() use($req, $login_data, &$progress){
+            $proyek_summary=ProyekReportModel::where("id_proyek", $req['id_proyek'])->first();
+
+            $create=ProyekReportProgressPekerjaanModel::create([
+                'id_proyek_report'  =>$proyek_summary['id_proyek_report'],
+                'progress'          =>$req['progress']
+            ]);
+            $progress=$create;
+
+            //pic
+            $pic=ProyekReportPicModel::where("id_proyek_report", $proyek_summary['id_proyek_report'])
+                ->where("id_user", $login_data['id_user']);
+            if($pic->count()>0){
+                $pic->touch();
+            }
+            else{
+                ProyekReportPicModel::create([
+                    'id_proyek_report'  =>$proyek_summary['id_proyek_report'],
+                    'id_user'   =>$login_data['id_user']
+                ]);
+            }
+        });
+
+        return response()->json([
+            'status'=>"ok",
+            'data'  =>$progress
+        ]);
+    }
+
+    public function update_progress(Request $request, $id)
+    {
+        $login_data=$request['fm__login_data'];
+        $req=$request->all();
+
+        //ROLE AUTHENTICATION
+        if(!in_array($login_data['role'], ['admin', 'shipmanager'])){
+            return response()->json([
+                'error' =>"ACCESS_NOT_ALLOWED"
+            ], 403);
+        }
+
+        //VALIDATION
+        $req['id_proyek_report_progress_pekerjaan']=$id;
+        $validation=Validator::make($req, [
+            'id_proyek_report_progress_pekerjaan' =>[
+                "required",
+                Rule::exists("App\Models\ProyekReportProgressPekerjaanModel")
+            ],
+            'progress'  =>"required|between:0,100"
+        ]);
+        if($validation->fails()){
+            return response()->json([
+                'error' =>"VALIDATION_ERROR",
+                'data'  =>$validation->errors()
+            ], 500);
+        }
+
+        //SUCCESS
+        $progress=(object)[];
+        DB::transaction(function() use($req, $login_data, &$progress){
+            $proyek_report=ProyekReportProgressPekerjaanModel::where("id_proyek_report_progress_pekerjaan", $req['id_proyek_report_progress_pekerjaan'])->first();
+            $proyek_report->update([
+                'progress'  =>$req['progress']
+            ]);
+            $progress=$proyek_report;
+            
+            //pic
+            $pic=ProyekReportPicModel::where("id_proyek_report", $proyek_report['id_proyek_report'])
+                ->where("id_user", $login_data['id_user']);
+            if($pic->count()>0){
+                $pic->touch();
+            }
+            else{
+                ProyekReportPicModel::create([
+                    'id_proyek_report'  =>$proyek_report['id_proyek_report'],
+                    'id_user'   =>$login_data['id_user']
+                ]);
+            }
+        });
+
+        return response()->json([
+            'status'=>"ok",
+            'data'  =>$progress
+        ]);
+    }
+
+    public function delete_progress(Request $request, $id)
+    {
+        $login_data=$request['fm__login_data'];
+        $req=$request->all();
+
+        //ROLE AUTHENTICATION
+        if(!in_array($login_data['role'], ['admin', 'shipmanager'])){
+            return response()->json([
+                'error' =>"ACCESS_NOT_ALLOWED"
+            ], 403);
+        }
+
+        //VALIDATION
+        $req['id_proyek_report_progress_pekerjaan']=$id;
+        $validation=Validator::make($req, [
+            'id_proyek_report_progress_pekerjaan' =>[
+                "required",
+                Rule::exists("App\Models\ProyekReportProgressPekerjaanModel")
+            ],
+        ]);
+        if($validation->fails()){
+            return response()->json([
+                'error' =>"VALIDATION_ERROR",
+                'data'  =>$validation->errors()
+            ], 500);
+        }
+
+        //SUCCESS
+        DB::transaction(function() use($req, $login_data){
+            $proyek_report=ProyekReportProgressPekerjaanModel::where("id_proyek_report_progress_pekerjaan", $req['id_proyek_report_progress_pekerjaan'])->first();
+            $proyek_report->delete();
+
+            //pic
+            $pic=ProyekReportPicModel::where("id_proyek_report", $proyek_report['id_proyek_report'])
+                ->where("id_user", $login_data['id_user']);
+            if($pic->count()>0){
+                $pic->touch();
+            }
+            else{
+                ProyekReportPicModel::create([
+                    'id_proyek_report'  =>$proyek_report['id_proyek_report'],
+                    'id_user'   =>$login_data['id_user']
+                ]);
+            }
+        });
+
+        return response()->json([
+            'status'=>"ok"
+        ]);
+    }
+
+    public function gets_report_progress(Request $request, $id)
+    {
+        $login_data=$request['fm__login_data'];
+        $req=$request->all();
+
+        //ROLE AUTHENTICATION
+        if(!in_array($login_data['role'], ['admin', 'director', 'shipyard', 'shipmanager'])){
+            return response()->json([
+                'error' =>"ACCESS_NOT_ALLOWED"
+            ], 403);
+        }
+
+        //VALIDATION
+        $req['id_proyek']=$id;
+        $validation=Validator::make($req, [
+            'id_proyek' =>[
+                "required",
+                Rule::exists("App\Models\ProyekReportModel", "id_proyek")
+            ],
+            'per_page'  =>[
+                Rule::requiredIf(!isset($req['per_page'])),
+                "integer",
+                "min:1"
+            ]
+        ]);
+        if($validation->fails()){
+            return response()->json([
+                'error' =>"VALIDATION_ERROR",
+                'data'  =>$validation->errors()
+            ], 500);
+        }
+
+        //SUCCESS
+        $progress=ProyekReportRepo::gets_report_progress($req);
+
+        return response()->json([
+            'first_page'    =>1,
+            'current_page'  =>$progress['current_page'],
+            'last_page'     =>$progress['last_page'],
+            'data'          =>$progress['data']
+        ]);
+    }
+
+    public function get_progress(Request $request, $id)
+    {
+        $login_data=$request['fm__login_data'];
+        $req=$request->all();
+
+        //ROLE AUTHENTICATION
+        if(!in_array($login_data['role'], ['admin', 'director', 'shipyard', 'shipmanager'])){
+            return response()->json([
+                'error' =>"ACCESS_NOT_ALLOWED"
+            ], 403);
+        }
+
+        //VALIDATION
+        $req['id_proyek_report_progress_pekerjaan']=$id;
+        $validation=Validator::make($req, [
+            'id_proyek_report_progress_pekerjaan' =>[
+                "required",
+                Rule::exists("App\Models\ProyekReportProgressPekerjaanModel", "id_proyek_report_progress_pekerjaan")
+            ]
+        ]);
+        if($validation->fails()){
+            return response()->json([
+                'error' =>"VALIDATION_ERROR",
+                'data'  =>$validation->errors()
+            ], 500);
+        }
+
+        //SUCCESS
+        $progress=ProyekReportRepo::get_report_progress($req['id_proyek_report_progress_pekerjaan']);
+
+        return response()->json([
+            'data'  =>$progress
+        ]);
+    }
+
+    public function gets_progress_by_id(Request $request)
+    {
+        $login_data=$request['fm__login_data'];
+        $req=$request->all();
+
+        //ROLE AUTHENTICATION
+        if(!in_array($login_data['role'], ['admin', 'director', 'shipyard', 'shipmanager'])){
+            return response()->json([
+                'error' =>"ACCESS_NOT_ALLOWED"
+            ], 403);
+        }
+
+        //VALIDATION
+        $validation=Validator::make($req, [
+            'id_proyek_report_progress_pekerjaan'  =>"required|array"
+        ]);
+        if($validation->fails()){
+            return response()->json([
+                'error' =>"VALIDATION_ERROR",
+                'data'  =>$validation->errors()
+            ], 500);
+        }
+
+        //SUCCESS
+        $progress=ProyekReportRepo::gets_report_progress_by_id($req);
+
+        return response()->json([
+            'data'  =>$progress
         ]);
     }
 }

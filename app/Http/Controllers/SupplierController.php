@@ -6,16 +6,13 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\DB;
-use App\Models\ProyekModel;
-use App\Models\ProyekReportModel;
-use App\Models\ProyekReportDetailModel;
-use App\Models\ProyekReportPicModel;
-use App\Repository\ProyekReportRepo;
+use App\Models\SupplierModel;
+use App\Repository\SupplierRepo;
 
 class SupplierController extends Controller
 {
-    //SUMMARY DETAIL
-    public function add_detail(Request $request)
+
+    public function add_supplier(Request $request)
     {
         $login_data=$request['fm__login_data'];
         $req=$request->all();
@@ -29,42 +26,13 @@ class SupplierController extends Controller
 
         //VALIDATION
         $validation=Validator::make($req, [
-            'id_proyek' =>[
-                "required",
-                function($attr, $value, $fail)use($login_data){
-                    //proyek
-                    $p=ProyekModel::has("report")->where("id_proyek", $value);
-                    //--shipyard
-                    if($login_data['role']=="shipyard"){
-                        $p=$p->whereHas("report.tender", function($query)use($login_data){
-                            $query->where("id_user", $login_data['id_user']);
-                        });
-                    }
-                    if($p->count()==0){
-                        return $fail("The selected id proyek is invalid.");
-                    }
-                    return true;
-                }
+            'nama_supplier' =>"required",
+            'alamat'        =>[
+                Rule::requiredIf(!isset($req['alamat']))
             ],
-            'type'      =>"required|in:bast,close_out_report,surat_teguran",
-            'tgl'       =>"required|date_format:Y-m-d",
-            'perihal'   =>"required",
-            'nama_pengirim' =>"required",
-            'keterangan'=>[
-                Rule::requiredIf(!isset($req['keterangan']))
-            ],
-            'dokumen'   =>[
-                Rule::requiredIf(!isset($req['dokumen'])),
-                "ends_with:.pdf,.doc,.docx,.xls,.xlsx",
-                function($attr, $value, $fail){
-                    if(trim($value)==""){
-                        return true;
-                    }
-                    if(is_document_file($value)){
-                        return true;
-                    }
-                    return $fail("document not found.");
-                }
+            'email'         =>"required|email",
+            'no_hp'         =>[
+                Rule::requiredIf(!isset($req['no_hp']))
             ]
         ]);
         if($validation->fails()){
@@ -75,100 +43,46 @@ class SupplierController extends Controller
         }
 
         //SUCCESS
-        DB::transaction(function() use($req, $login_data){
-            $proyek_summary=ProyekReportModel::where("id_proyek", $req['id_proyek'])->first();
-
-            ProyekReportDetailModel::create([
-                'id_proyek_report'  =>$proyek_summary['id_proyek_report'],
-                'id_user'   =>$login_data['id_user'],
-                'type'      =>$req['type'],
-                'tgl'       =>$req['tgl'],
-                'perihal'   =>$req['perihal'],
-                'nama_pengirim' =>$req['nama_pengirim'],
-                'keterangan'    =>$req['keterangan'],
-                'dokumen'       =>trim($req['dokumen'])
+        $supplier=(object)[];
+        DB::transaction(function() use($req, $login_data, &$supplier){
+            $create=SupplierModel::create([
+                'nama_supplier' =>$req['nama_supplier'],
+                'alamat'        =>$req['alamat'],
+                'email'         =>$req['email'],
+                'no_hp'         =>$req['no_hp']
             ]);
-
-            //pic
-            $pic=ProyekReportPicModel::where("id_proyek_report", $proyek_summary['id_proyek_report'])
-                ->where("id_user", $login_data['id_user']);
-            if($pic->count()>0){
-                $pic->touch();
-            }
-            else{
-                ProyekReportPicModel::create([
-                    'id_proyek_report'  =>$proyek_summary['id_proyek_report'],
-                    'id_user'   =>$login_data['id_user']
-                ]);
-            }
+            $supplier=$create;
         });
 
         return response()->json([
-            'status'=>"ok"
+            'status'=>"ok",
+            'data'  =>$supplier
         ]);
     }
 
-    public function update_detail(Request $request, $id)
+    public function update_supplier(Request $request, $id)
     {
         $login_data=$request['fm__login_data'];
         $req=$request->all();
 
         //ROLE AUTHENTICATION
-        if(!in_array($login_data['role'], ['admin', 'shipyard', 'shipmanager'])){
+        if(!in_array($login_data['role'], ['admin', 'shipmanager'])){
             return response()->json([
                 'error' =>"ACCESS_NOT_ALLOWED"
             ], 403);
         }
 
         //VALIDATION
-        $req['id_proyek_report_detail']=$id;
+        $req['id_supplier']=$id;
         $validation=Validator::make($req, [
-            'id_proyek_report_detail' =>[
-                "required",
-                Rule::exists("App\Models\ProyekReportDetailModel")->where(function($query)use($login_data){
-                    if(!in_array($login_data['role'], ["admin", "shipmanager"])){
-                        $query->where("id_user", $login_data['id_user']);
-                    }
-                }),
-                function($attr, $value, $fail)use($login_data){
-                    //detail
-                    $b=ProyekReportDetailModel::with("report")->where("id_proyek_report_detail", $value);
-                    if($b->count()==0){
-                        return $fail("The selected id proyek report detail is invalid.");
-                    }
-
-                    //proyek
-                    $p=ProyekModel::has("report")->where("id_proyek", $b->first()['report']['id_proyek']);
-                    //--shipyard
-                    if($login_data['role']=="shipyard"){
-                        $p=$p->whereHas("report.tender", function($query)use($login_data){
-                            $query->where("id_user", $login_data['id_user']);
-                        });
-                    }
-                    if($p->count()==0){
-                        return $fail("The selected id proyek is invalid.");
-                    }
-                    return true;
-                }
+            'id_supplier'   =>"required|exists:App\Models\SupplierModel,id_supplier",
+            'nama_supplier' =>"required",
+            'alamat'        =>[
+                Rule::requiredIf(!isset($req['alamat']))
             ],
-            'tgl'       =>"required|date_format:Y-m-d",
-            'perihal'   =>"required",
-            'nama_pengirim' =>"required",
-            'keterangan'=>[
-                Rule::requiredIf(!isset($req['keterangan']))
-            ],
-            'dokumen'   =>[
-                Rule::requiredIf(!isset($req['dokumen'])),
-                "ends_with:.pdf,.doc,.docx,.xls,.xlsx",
-                function($attr, $value, $fail){
-                    if(trim($value)==""){
-                        return true;
-                    }
-                    if(is_document_file($value)){
-                        return true;
-                    }
-                    return $fail("document not found.");
-                }
+            'email'         =>"required|email",
+            'no_hp'         =>[
+                Rule::requiredIf(!isset($req['no_hp']))
             ]
         ]);
         if($validation->fails()){
@@ -179,78 +93,40 @@ class SupplierController extends Controller
         }
 
         //SUCCESS
-        DB::transaction(function() use($req, $login_data){
-            $proyek_report=ProyekReportDetailModel::where("id_proyek_report_detail", $req['id_proyek_report_detail'])->first();
-            $proyek_report->update([
-                'tgl'       =>$req['tgl'],
-                'perihal'   =>$req['perihal'],
-                'nama_pengirim' =>$req['nama_pengirim'],
-                'keterangan'    =>$req['keterangan'],
-                'dokumen'       =>trim($req['dokumen'])
-            ]);
-            
-            //pic
-            $pic=ProyekReportPicModel::where("id_proyek_report", $proyek_report['id_proyek_report'])
-                ->where("id_user", $login_data['id_user']);
-            if($pic->count()>0){
-                $pic->touch();
-            }
-            else{
-                ProyekReportPicModel::create([
-                    'id_proyek_report'  =>$proyek_report['id_proyek_report'],
-                    'id_user'   =>$login_data['id_user']
+        $supplier=(object)[];
+        DB::transaction(function() use($req, $login_data, &$supplier){
+            $update=SupplierModel::where("id_supplier", $req['id_supplier'])
+                ->updateOrCreate([
+                    'nama_supplier' =>$req['nama_supplier'],
+                    'alamat'        =>$req['alamat'],
+                    'email'         =>$req['email'],
+                    'no_hp'         =>$req['no_hp']
                 ]);
-            }
+            $supplier=$update;
         });
 
         return response()->json([
-            'status'=>"ok"
+            'status'=>"ok",
+            'data'  =>$supplier
         ]);
     }
 
-    public function delete_detail(Request $request, $id)
+    public function delete_supplier(Request $request, $id)
     {
         $login_data=$request['fm__login_data'];
         $req=$request->all();
 
         //ROLE AUTHENTICATION
-        if(!in_array($login_data['role'], ['admin', 'shipyard', 'shipmanager'])){
+        if(!in_array($login_data['role'], ['admin', 'shipmanager'])){
             return response()->json([
                 'error' =>"ACCESS_NOT_ALLOWED"
             ], 403);
         }
 
         //VALIDATION
-        $req['id_proyek_report_detail']=$id;
+        $req['id_supplier']=$id;
         $validation=Validator::make($req, [
-            'id_proyek_report_detail' =>[
-                "required",
-                Rule::exists("App\Models\ProyekReportDetailModel")->where(function($query)use($login_data){
-                    if(!in_array($login_data['role'], ["admin", "shipmanager"])){
-                        $query->where("id_user", $login_data['id_user']);
-                    }
-                }),
-                function($attr, $value, $fail)use($login_data){
-                    //detail
-                    $b=ProyekReportDetailModel::with("report")->where("id_proyek_report_detail", $value);
-                    if($b->count()==0){
-                        return $fail("The selected id proyek report detail is invalid.");
-                    }
-
-                    //proyek
-                    $p=ProyekModel::has("report")->where("id_proyek", $b->first()['report']['id_proyek']);
-                    //--shipyard
-                    if($login_data['role']=="shipyard"){
-                        $p=$p->whereHas("report.tender", function($query)use($login_data){
-                            $query->where("id_user", $login_data['id_user']);
-                        });
-                    }
-                    if($p->count()==0){
-                        return $fail("The selected id proyek is invalid.");
-                    }
-                    return true;
-                }
-            ]
+            'id_supplier'   =>"required|exists:App\Models\SupplierModel,id_supplier"
         ]);
         if($validation->fails()){
             return response()->json([
@@ -261,21 +137,7 @@ class SupplierController extends Controller
 
         //SUCCESS
         DB::transaction(function() use($req, $login_data){
-            $proyek_report=ProyekReportDetailModel::where("id_proyek_report_detail", $req['id_proyek_report_detail'])->first();
-            $proyek_report->delete();
-
-            //pic
-            $pic=ProyekReportPicModel::where("id_proyek_report", $proyek_report['id_proyek_report'])
-                ->where("id_user", $login_data['id_user']);
-            if($pic->count()>0){
-                $pic->touch();
-            }
-            else{
-                ProyekReportPicModel::create([
-                    'id_proyek_report'  =>$proyek_report['id_proyek_report'],
-                    'id_user'   =>$login_data['id_user']
-                ]);
-            }
+            SupplierModel::where("id_supplier", $req['id_supplier'])->delete();
         });
 
         return response()->json([
@@ -283,7 +145,22 @@ class SupplierController extends Controller
         ]);
     }
 
-    public function gets_report_detail(Request $request, $id)
+    public function gets_supplier(Request $request)
+    {
+        $login_data=$request['fm__login_data'];
+        $req=$request->all();
+
+        //condition
+        $req['type']=isset($req['type'])?$req['type']:"";
+        if($req['type']=="multiple"){
+            return $this->gets_supplier_by_id($request);
+        }
+        else{
+            return $this->gets_all_supplier($request);
+        }
+    }
+
+    private function gets_all_supplier(Request $request)
     {
         $login_data=$request['fm__login_data'];
         $req=$request->all();
@@ -296,30 +173,14 @@ class SupplierController extends Controller
         }
 
         //VALIDATION
-        $req['id_proyek']=$id;
         $validation=Validator::make($req, [
             'per_page'  =>[
                 Rule::requiredIf(!isset($req['per_page'])),
                 "integer",
                 "min:1"
             ],
-            'type'      =>"required|in:bast,close_out_report,surat_teguran",
-            'id_proyek' =>[
-                "required",
-                function($attr, $value, $fail)use($login_data){
-                    //proyek
-                    $p=ProyekModel::has("report")->where("id_proyek", $value);
-                    //--shipyard
-                    if($login_data['role']=="shipyard"){
-                        $p=$p->whereHas("report.tender", function($query)use($login_data){
-                            $query->where("id_user", $login_data['id_user']);
-                        });
-                    }
-                    if($p->count()==0){
-                        return $fail("The selected id proyek is invalid.");
-                    }
-                    return true;
-                }
+            'q'         =>[
+                Rule::requiredIf(!isset($req['q']))
             ]
         ]);
         if($validation->fails()){
@@ -330,17 +191,17 @@ class SupplierController extends Controller
         }
 
         //SUCCESS
-        $detail=ProyekReportRepo::gets_report_detail($req);
+        $supplier=SupplierRepo::gets_supplier($req);
 
         return response()->json([
             'first_page'    =>1,
-            'current_page'  =>$detail['current_page'],
-            'last_page'     =>$detail['last_page'],
-            'data'          =>$detail['data']
+            'current_page'  =>$supplier['current_page'],
+            'last_page'     =>$supplier['last_page'],
+            'data'          =>$supplier['data']
         ]);
     }
 
-    public function get_detail(Request $request, $id)
+    private function gets_supplier_by_id(Request $request)
     {
         $login_data=$request['fm__login_data'];
         $req=$request->all();
@@ -353,31 +214,8 @@ class SupplierController extends Controller
         }
 
         //VALIDATION
-        $req['id_proyek_report_detail']=$id;
         $validation=Validator::make($req, [
-            'id_proyek_report_detail' =>[
-                "required",
-                function($attr, $value, $fail)use($login_data){
-                    //detail
-                    $b=ProyekReportDetailModel::with("report")->where("id_proyek_report_detail", $value);
-                    if($b->count()==0){
-                        return $fail("the selected id proyek report detail is invalid.");
-                    }
-
-                    //proyek
-                    $p=ProyekModel::has("report")->where("id_proyek", $b->first()['report']['id_proyek']);
-                    //--shipyard
-                    if($login_data['role']=="shipyard"){
-                        $p=$p->whereHas("report.tender", function($query)use($login_data){
-                            $query->where("id_user", $login_data['id_user']);
-                        });
-                    }
-                    if($p->count()==0){
-                        return $fail("The selected id proyek is invalid.");
-                    }
-                    return true;
-                }
-            ]
+            'id_supplier'  =>"required|array"
         ]);
         if($validation->fails()){
             return response()->json([
@@ -387,10 +225,42 @@ class SupplierController extends Controller
         }
 
         //SUCCESS
-        $detail=ProyekReportRepo::get_report_detail($req['id_proyek_report_detail']);
+        $supplier=SupplierRepo::gets_supplier_by_id($req);
 
         return response()->json([
-            'data'  =>$detail
+            'data'  =>$supplier
+        ]);
+    }
+
+    public function get_supplier(Request $request, $id)
+    {
+        $login_data=$request['fm__login_data'];
+        $req=$request->all();
+
+        //ROLE AUTHENTICATION
+        if(!in_array($login_data['role'], ['admin', 'director', 'shipyard', 'shipmanager'])){
+            return response()->json([
+                'error' =>"ACCESS_NOT_ALLOWED"
+            ], 403);
+        }
+
+        //VALIDATION
+        $req['id_supplier']=$id;
+        $validation=Validator::make($req, [
+            'id_supplier'   =>"required|exists:App\Models\SupplierModel,id_supplier"
+        ]);
+        if($validation->fails()){
+            return response()->json([
+                'error' =>"VALIDATION_ERROR",
+                'data'  =>$validation->errors()
+            ], 500);
+        }
+
+        //SUCCESS
+        $supplier=SupplierRepo::get_supplier($req['id_supplier']);
+
+        return response()->json([
+            'data'  =>$supplier
         ]);
     }
 }

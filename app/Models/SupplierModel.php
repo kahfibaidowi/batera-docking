@@ -21,8 +21,4 @@ class SupplierModel extends Model{
      *#FUNCTION
      *
      */
-    public function proyek(){
-        return $this->belongsTo(ProyekModel::class, "id_proyek");
-    }
-
 }

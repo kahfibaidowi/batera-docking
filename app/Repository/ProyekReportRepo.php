@@ -5,6 +5,8 @@ namespace App\Repository;
 use App\Models\ProyekReportModel;
 use App\Models\ProyekReportDetailModel;
 use App\Models\ProyekReportPicModel;
+use App\Models\ProyekReportCatatanModel;
+use App\Models\ProyekReportProgressPekerjaanModel;
 
 
 class ProyekReportRepo{
@@ -113,5 +115,71 @@ class ProyekReportRepo{
         
         //return
         return $pic->get()->toArray();
+    }
+
+    public static function gets_report_catatan($params)
+    {
+        //params
+        $params['per_page']=trim($params['per_page']);
+
+        //query
+        $query=ProyekReportCatatanModel::whereHas("report", function($query)use($params){
+                $query->where("id_proyek", $params['id_proyek']);
+            })
+            ->orderByDesc("id_proyek_report_catatan");
+        
+        //return
+        return $query->paginate($params['per_page'])->toArray();
+    }
+
+    public static function get_report_catatan($report_catatan_id)
+    {
+        //query
+        $catatan=ProyekReportCatatanModel::where("id_proyek_report_catatan", $report_catatan_id);
+
+        //return
+        return $catatan->first()->toArray();
+    }
+
+    public static function gets_report_catatan_by_id($params)
+    {
+        //query
+        $catatan=ProyekReportCatatanModel::whereIn("id_proyek_report_catatan", $params['id_proyek_report_catatan']);
+        
+        //data
+        return $catatan->get()->toArray();
+    }
+
+    public static function gets_report_progress($params)
+    {
+        //params
+        $params['per_page']=trim($params['per_page']);
+
+        //query
+        $query=ProyekReportProgressPekerjaanModel::whereHas("report", function($query)use($params){
+                $query->where("id_proyek", $params['id_proyek']);
+            })
+            ->orderByDesc("id_proyek_report_progress_pekerjaan");
+        
+        //return
+        return $query->paginate($params['per_page'])->toArray();
+    }
+
+    public static function get_report_progress($report_progress_id)
+    {
+        //query
+        $progress=ProyekReportProgressPekerjaanModel::where("id_proyek_report_progress_pekerjaan", $report_progress_id);
+
+        //return
+        return $progress->first()->toArray();
+    }
+
+    public static function gets_report_progress_by_id($params)
+    {
+        //query
+        $catatan=ProyekReportProgressPekerjaanModel::whereIn("id_proyek_report_progress_pekerjaan", $params['id_proyek_report_progress_pekerjaan']);
+        
+        //data
+        return $catatan->get()->toArray();
     }
 }

@@ -50,18 +50,6 @@ $router->group(['prefix'=>"/user", 'middleware'=>"auth"], function()use($router)
 });
 
 
-//FILE
-$router->post("/file/upload", [
-    'uses'=>"FileController@upload",
-    'middleware'=>[
-        'auth'
-    ]
-]);
-$router->get("/file/show/{file}", [
-    'uses'=>"FileController@show"
-]);
-
-
 //DASHBOARD KAPAL
 $router->group(['prefix'=>"/home", 'middleware'=>"auth"], function()use($router){
     $router->post("/kapal", ['uses'=>"HomeController@add_vessel"]);
@@ -116,6 +104,30 @@ $router->group(['prefix'=>"/report", 'middleware'=>"auth"], function()use($route
     $router->put("/proyek/{id}/variant_work", ['uses'=>"ReportController@update_report_variant_work"]);
     //--proyek summary pic
     $router->get("/proyek/{id}/pic", ['uses'=>"ReportController@gets_report_pic"]);
+    //--proyek summary remarks/catatan
+    $router->post("/catatan", ['uses'=>"ReportController@add_catatan"]);
+    $router->put("/catatan/{id}", ['uses'=>"ReportController@update_catatan"]);
+    $router->delete("/catatan/{id}", ['uses'=>"ReportController@delete_catatan"]);
+    $router->get("/catatan/{id}", ['uses'=>"ReportController@get_catatan"]);
+    $router->get("/proyek/{id}/catatan", ['uses'=>"ReportController@gets_report_catatan"]);
+    $router->get("/catatan", ['uses'=>"ReportController@gets_catatan_by_id"]);
+    //--proyek summary progress pekerjaan
+    $router->post("/progress", ['uses'=>"ReportController@add_progress"]);
+    $router->put("/progress/{id}", ['uses'=>"ReportController@update_progress"]);
+    $router->delete("/progress/{id}", ['uses'=>"ReportController@delete_progress"]);
+    $router->get("/progress/{id}", ['uses'=>"ReportController@get_progress"]);
+    $router->get("/proyek/{id}/progress", ['uses'=>"ReportController@gets_report_progress"]);
+    $router->get("/progress", ['uses'=>"ReportController@gets_progress_by_id"]);
+});
+
+
+//SUPPLIER
+$router->group(['prefix'=>"/supplier", 'middleware'=>"auth"], function()use($router){
+    $router->post("/", ['uses'=>"SupplierController@add_supplier"]);
+    $router->put("/{id}", ['uses'=>"SupplierController@update_supplier"]);
+    $router->delete("/{id}", ['uses'=>"SupplierController@delete_supplier"]);
+    $router->get("/{id}", ['uses'=>"SupplierController@get_supplier"]);
+    $router->get("/", ['uses'=>"SupplierController@gets_supplier"]);
 });
 
 
@@ -126,3 +138,13 @@ $router->get("/tracking", [
         'auth'
     ]
 ]);
+
+
+//FILE
+$router->group(['prefix'=>"/file", 'middleware'=>"auth"], function()use($router){
+    $router->post("/upload", ['uses'=>"FileController@upload"]);
+    $router->post("/attachment", ['uses'=>"FileController@add_attachment"]);
+    $router->delete("/attachment/{id}", ['uses'=>"FileController@delete_attachment"]);
+});
+$router->get("/file/show/{file}", ['uses'=>"FileController@show"]);
+$router->get("/file/attachment/{id}", ['uses'=>"FileController@get_attachment"]);

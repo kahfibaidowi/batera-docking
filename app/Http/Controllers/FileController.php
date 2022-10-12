@@ -3,16 +3,18 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
-use App\Models\UserLoginModel;
-use App\Models\UserModel;
+use App\Models\AttachmentModel;
+use App\Repository\AttachmentRepo;
 
 class FileController extends Controller
 {
 
+    //FILE
     public function upload(Request $request)
     {
         $login_data=$request['fm__login_data'];
@@ -20,7 +22,7 @@ class FileController extends Controller
 
         //VALIDATION
         $validation=Validator::make($req, [
-            'dokumen'   =>"required|file|max:10240|mimes:jpg,jpeg,png,pdf,doc,docx,xls,xlsx"
+            'dokumen'   =>"required|file|mimes:jpg,jpeg,png,pdf,doc,docx,xls,xlsx"
         ]);
         if($validation->fails()){
             return response()->json([
@@ -61,5 +63,102 @@ class FileController extends Controller
         return response()->json([
             'status'=>"NOT_FOUND"
         ], 404);
+    }
+
+    //ATTACHMENT
+    public function add_attachment(Request $request)
+    {
+        $login_data=$request['fm__login_data'];
+        $req=$request->all();
+
+        //VALIDATION
+        $validation=Validator::make($req, [
+            'dokumen'   =>"required|file|max:2048|mimes:jpg,jpeg,png,pdf,doc,docx,xls,xlsx"
+        ]);
+        if($validation->fails()){
+            return response()->json([
+                'error' =>"VALIDATION_ERROR",
+                'data'  =>$validation->errors()
+            ], 500);
+        }
+
+        //SUCCESS
+        $dokumen=(object)[];
+        DB::transaction(function()use($request, &$dokumen){
+            //file
+            $file=$request->file("dokumen");
+            $a=\file_get_contents($file);
+            $nama_attachment=$file->getClientOriginalName();
+
+            //save
+            $create=AttachmentModel::create([
+                'nama_attachment'   =>$nama_attachment,
+                'attachment'        =>base64_encode($a)
+            ]);
+            $dokumen=[
+                'id_attachment' =>$create['id_attachment'],
+                'nama_attachment'=>$create['nama_attachment'],
+                'created_at'    =>$create['created_at'],
+                'updated_at'    =>$create['updated_at']
+            ];
+        });
+
+        return response()->json([
+            'status'=>"ok",
+            'data'  =>$dokumen
+        ]);
+    }
+
+    public function get_attachment(Request $request, $id)
+    {   
+        $login_data=$request['fm__login_data'];
+        $req=$request->all();
+
+        //VALIDATION
+        $req['id_attachment']=$id;
+        $validation=Validator::make($req, [
+            'id_attachment'   =>"required|exists:App\Models\AttachmentModel,id_attachment"
+        ]);
+        if($validation->fails()){
+            return response()->json([
+                'error' =>"VALIDATION_ERROR",
+                'data'  =>$validation->errors()
+            ], 500);
+        }
+
+        //SUCCESS
+        $attachment=AttachmentRepo::get_attachment($req['id_attachment']);
+
+        $file_info=new \finfo(FILEINFO_MIME_TYPE);
+        $file=base64_decode($attachment['attachment']);
+
+        return response($file, 200)->header('Content-Type', $file_info->buffer($file));
+    }
+
+    public function delete_attachment(Request $request, $id)
+    {
+        $login_data=$request['fm__login_data'];
+        $req=$request->all();
+
+        //VALIDATION
+        $req['id_attachment']=$id;
+        $validation=Validator::make($req, [
+            'id_attachment'   =>"required|exists:App\Models\AttachmentModel,id_attachment"
+        ]);
+        if($validation->fails()){
+            return response()->json([
+                'error' =>"VALIDATION_ERROR",
+                'data'  =>$validation->errors()
+            ], 500);
+        }
+
+        //SUCCESS
+        DB::transaction(function()use($req){
+            AttachmentModel::where("id_attachment", $req['id_attachment'])->delete();
+        });
+
+        return response()->json([
+            'status'=>"ok"
+        ]);
     }
 }
