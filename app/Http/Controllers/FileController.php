@@ -140,6 +140,21 @@ class FileController extends Controller
         $login_data=$request['fm__login_data'];
         $req=$request->all();
 
+        //condition
+        $req['type']=isset($req['type'])?$req['type']:"";
+        if($req['type']=="multiple"){
+            return $this->gets_attachment_by_id($request);
+        }
+        else{
+            return $this->gets_all_attachment($request);
+        }
+    }
+
+    private function gets_all_attachment(Request $request)
+    {
+        $login_data=$request['fm__login_data'];
+        $req=$request->all();
+
         //VALIDATION
         $validation=Validator::make($req, [
             'per_page'  =>[
@@ -166,6 +181,30 @@ class FileController extends Controller
             'current_page'  =>$attachment['current_page'],
             'last_page'     =>$attachment['last_page'],
             'data'          =>$attachment['data']
+        ]);
+    }
+
+    private function gets_attachment_by_id(Request $request)
+    {
+        $login_data=$request['fm__login_data'];
+        $req=$request->all();
+
+        //VALIDATION
+        $validation=Validator::make($req, [
+            'id_attachment' =>"required|array"
+        ]);
+        if($validation->fails()){
+            return response()->json([
+                'error' =>"VALIDATION_ERROR",
+                'data'  =>$validation->errors()
+            ], 500);
+        }
+
+        //SUCCESS
+        $attachment=AttachmentRepo::gets_attachment_by_id($req);
+
+        return response()->json([
+            'data'          =>$attachment
         ]);
     }
 

@@ -29,4 +29,13 @@ class AttachmentRepo{
         //return
         return $attachment->paginate($params['per_page'])->toArray();
     }
+
+    public static function gets_attachment_by_id($params)
+    {
+        //query
+        $attachment=AttachmentModel::select("id_attachment", "nama_attachment")->whereIn("id_attachment", $params['id_attachment']);
+
+        //return
+        return $attachment->get()->toArray();
+    }
 }
