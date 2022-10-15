@@ -15,7 +15,6 @@ return new class extends Migration
     {
         Schema::create("tbl_tender", function (Blueprint $table) {
             $table->id("id_tender");
-            $table->unsignedBigInteger("id_proyek");
             $table->unsignedBigInteger("id_user")->comment("shipyard/galangan(responsible)");
             $table->text("dokumen_kontrak");
             $table->text("no_kontrak");
@@ -30,11 +29,6 @@ return new class extends Migration
             $table->timestamps();
 
             //fk
-            $table->foreign("id_proyek")
-                ->references("id_proyek")
-                ->on("tbl_proyek")
-                ->onDelete("cascade");
-
             $table->foreign("id_user")
                 ->references("id_user")
                 ->on("tbl_users")

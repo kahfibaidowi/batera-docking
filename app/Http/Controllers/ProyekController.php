@@ -44,9 +44,6 @@ class ProyekController extends Controller
                 }
             ],
             'phase'         =>"required|in:requisition,in_progress,evaluasi,finish",
-            'selected_yard' =>[
-                Rule::requiredIf(!isset($req['selected_yard']))
-            ],
             'tahun'     =>"required|integer|digits:4",
             'mata_uang'     =>"required",
             'off_hire_start'=>"required|date_format:Y-m-d",
@@ -77,7 +74,6 @@ class ProyekController extends Controller
                 'id_kapal'  =>$req['id_kapal'],
                 'id_user'   =>$req['id_user'],
                 'phase'     =>$req['phase'],
-                'selected_yard' =>$req['selected_yard'],
                 'tahun'     =>$req['tahun'],
                 'mata_uang'     =>$req['mata_uang'],
                 'off_hire_start'=>$req['off_hire_start'],
@@ -132,9 +128,6 @@ class ProyekController extends Controller
                 }
             ],
             'phase'         =>"required|in:requisition,in_progress,evaluasi,finish",
-            'selected_yard' =>[
-                Rule::requiredIf(!isset($req['selected_yard']))
-            ],
             'tahun'     =>"required|integer|digits:4",
             'mata_uang'     =>"required",
             'off_hire_start'=>"required|date_format:Y-m-d",
@@ -165,6 +158,7 @@ class ProyekController extends Controller
                 ->update([
                     'id_user'   =>$req['id_user'],
                     'tahun'     =>$req['tahun'],
+                    'phase'     =>$req['phase'],
                     'mata_uang'     =>$req['mata_uang'],
                     'off_hire_start'=>$req['off_hire_start'],
                     'off_hire_end'  =>$req['off_hire_end'],

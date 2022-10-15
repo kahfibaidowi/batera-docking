@@ -29,10 +29,6 @@ class TenderController extends Controller
 
         //VALIDATION
         $validation=Validator::make($req, [
-            'id_proyek'         =>[
-                "required",
-                Rule::exists("App\Models\ProyekModel")
-            ],
             'id_user'           =>[
                 "required",
                 function($attr, $value, $fail)use($login_data){
@@ -42,14 +38,6 @@ class TenderController extends Controller
                     if($v->count()==0){
                         return $fail("The selected id_user(responsible) is invalid or role not shipyard");
                     }
-                },
-                function($attr, $value, $fail)use($req){
-                    $v=TenderModel::where("id_proyek", $req['id_proyek'])
-                        ->where("id_user", $value);
-                    if($v->count()>0){
-                        return $fail("multiple input tender for one shipyard not allowed in one project");
-                    }
-                    return true;
                 }
             ],
             'yard_total_quote'  =>"required|numeric|min:0",
@@ -86,7 +74,6 @@ class TenderController extends Controller
         //SUCCESS
         DB::transaction(function() use($req, $login_data){
             $tender=TenderModel::create([
-                'id_proyek'         =>$req['id_proyek'],
                 'id_user'           =>$req['id_user'],
                 'yard_total_quote'  =>$req['yard_total_quote'],
                 'general_diskon_persen' =>$req['general_diskon_persen'],
@@ -97,8 +84,7 @@ class TenderController extends Controller
                 'komentar'          =>$req['komentar'],
                 'nama_galangan'     =>$req['nama_galangan'],
                 'lokasi_galangan'   =>$req['lokasi_galangan'],
-                'work_area'         =>null,
-                'variant_work'      =>null
+                'work_area'         =>null
             ]);
         });
 
@@ -215,38 +201,6 @@ class TenderController extends Controller
         ]);
     }
 
-    public function gets_tender_proyek(Request $request, $id)
-    {
-        $login_data=$request['fm__login_data'];
-        $req=$request->all();
-
-        //ROLE AUTHENTICATION
-        if(!in_array($login_data['role'], ['admin', 'shipyard', 'shipmanager', 'director'])){
-            return response()->json([
-                'error' =>"ACCESS_NOT_ALLOWED"
-            ], 403);
-        }
-
-        //VALIDATION
-        $req['id_proyek']=$id;
-        $validation=Validator::make($req, [
-            'id_proyek' =>"required|exists:App\Models\ProyekModel,id_proyek"
-        ]);
-        if($validation->fails()){
-            return response()->json([
-                'error' =>"VALIDATION_ERROR",
-                'data'  =>$validation->errors()
-            ], 500);
-        }
-
-        //SUCCESS
-        $tender=TenderRepo::gets_tender_proyek($req['id_proyek']);
-
-        return response()->json([
-            'data'  =>$tender
-        ]);
-    }
-
     public function select_tender(Request $request, $id)
     {
         $login_data=$request['fm__login_data'];
@@ -264,7 +218,13 @@ class TenderController extends Controller
         $validation=Validator::make($req, [
             'id_tender'         =>[
                 "required",
-                Rule::exists("App\Models\TenderModel")
+                Rule::unique("App\Models\ProyekReportModel", "id_tender"),
+                Rule::exists("App\Models\TenderModel", "id_tender")
+            ],
+            'id_proyek'         =>[
+                "required",
+                Rule::unique("App\Models\ProyekReportModel", "id_proyek"),
+                Rule::exists("App\Models\ProyekModel", "id_proyek")
             ]
         ]);
         if($validation->fails()){
@@ -276,11 +236,10 @@ class TenderController extends Controller
 
         //SUCCESS
         DB::transaction(function() use($req){
-            $tender=TenderModel::where("id_tender", $req['id_tender'])->first();
-            $proyek=ProyekModel::where("id_proyek", $tender['id_proyek'])->first();
+            $proyek=ProyekModel::where("id_proyek", $req['id_proyek'])->first();
 
             ProyekReportModel::create([
-                "id_proyek"     =>$proyek['id_proyek'],
+                "id_proyek"     =>$req['id_proyek'],
                 "id_tender"     =>$req['id_tender'],
                 "summary_detail"=>"",
                 "approved_by"   =>"",

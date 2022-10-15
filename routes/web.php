@@ -79,7 +79,6 @@ $router->group(['prefix'=>"/tender", 'middleware'=>"auth"], function()use($route
     $router->get("/{id}", ['uses'=>"TenderController@get_tender"]);
     $router->put("/{id}", ['uses'=>"TenderController@update_tender"]);
     $router->delete("/{id}", ['uses'=>"TenderController@delete_tender"]);
-    $router->get("/proyek/{id}", ['uses'=>"TenderController@gets_tender_proyek"]);
     $router->post("/{id}/select_tender", ['uses'=>"TenderController@select_tender"]);
     $router->delete("/{id}/unselect_tender", ['uses'=>"TenderController@unselect_tender"]);
     //--work area

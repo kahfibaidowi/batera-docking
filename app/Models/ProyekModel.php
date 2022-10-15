@@ -12,7 +12,6 @@ class ProyekModel extends Model{
     protected $fillable=[
         'id_kapal',
         'id_user',
-        'selected_yard',
         'phase',
         'tahun',
         "mata_uang",

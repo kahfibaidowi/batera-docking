@@ -10,7 +10,6 @@ class TenderModel extends Model{
     protected $table="tbl_tender";
     protected $primaryKey="id_tender";
     protected $fillable=[
-        'id_proyek',
         'id_user',
         'dokumen_kontrak',
         'no_kontrak',
@@ -36,7 +35,7 @@ class TenderModel extends Model{
         return $this->belongsTo(UserModel::class, "id_user");
     }
 
-    public function proyek(){
-        return $this->belongsTo(ProyekModel::class, "id_proyek");
+    public function report(){
+        return $this->hasOne(ProyekReportModel::class, "id_tender");
     }
 }

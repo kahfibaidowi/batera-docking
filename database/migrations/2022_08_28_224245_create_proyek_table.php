@@ -18,7 +18,6 @@ return new class extends Migration
             $table->unsignedBigInteger("id_user")->comment("responsible");
             $table->unsignedBigInteger("id_kapal")->comment("referensi kapal");
             $table->text("phase")->comment("RPEF");
-            $table->text("selected_yard");
             $table->unsignedInteger("tahun");
             $table->text("mata_uang");
             $table->date("off_hire_start");
