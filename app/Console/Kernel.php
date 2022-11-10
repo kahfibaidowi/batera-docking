@@ -25,7 +25,7 @@ class Kernel extends ConsoleKernel
     protected function schedule(Schedule $schedule)
     {
         // start the queue worker, if its not running
-        $schedule->command('queue:listen')->everyMinute()->withoutOverlapping();
+        // $schedule->command('queue:listen')->everyMinute()->withoutOverlapping();
 
         // jalankan cron job
         // php artisan schedule:run

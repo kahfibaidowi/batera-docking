@@ -110,7 +110,7 @@ class FileController extends Controller
     }
 
     public function get_attachment(Request $request, $id)
-    {   
+    {
         $login_data=$request['fm__login_data'];
         $req=$request->all();
 

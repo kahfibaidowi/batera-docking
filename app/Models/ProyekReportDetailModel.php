@@ -17,7 +17,7 @@ class ProyekReportDetailModel extends Model{
         "perihal",
         "nama_pengirim",
         "keterangan",
-        "dokumen"
+        "id_attachment"
     ];
 
     protected $hidden=[];
@@ -33,5 +33,9 @@ class ProyekReportDetailModel extends Model{
 
     public function created_by(){
         return $this->belongsTo(UserModel::class, "id_user");
+    }
+
+    public function attachment(){
+        return $this->belongsTo(AttachmentModel::class, "id_attachment");
     }
 }

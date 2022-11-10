@@ -262,18 +262,9 @@ class ReportController extends Controller
             'keterangan'=>[
                 Rule::requiredIf(!isset($req['keterangan']))
             ],
-            'dokumen'   =>[
-                Rule::requiredIf(!isset($req['dokumen'])),
-                "ends_with:.pdf,.doc,.docx,.xls,.xlsx",
-                function($attr, $value, $fail){
-                    if(trim($value)==""){
-                        return true;
-                    }
-                    if(is_document_file($value)){
-                        return true;
-                    }
-                    return $fail("document not found.");
-                }
+            'id_attachment' =>[
+                Rule::requiredIf(!isset($req['id_attachment'])),
+                Rule::exists("App\Models\AttachmentModel", "id_attachment")
             ]
         ]);
         if($validation->fails()){
@@ -295,7 +286,7 @@ class ReportController extends Controller
                 'perihal'   =>$req['perihal'],
                 'nama_pengirim' =>$req['nama_pengirim'],
                 'keterangan'    =>$req['keterangan'],
-                'dokumen'       =>trim($req['dokumen'])
+                'id_attachment' =>trim($req['id_attachment'])!=""?$req['id_attachment']:null
             ]);
 
             //pic
@@ -366,18 +357,9 @@ class ReportController extends Controller
             'keterangan'=>[
                 Rule::requiredIf(!isset($req['keterangan']))
             ],
-            'dokumen'   =>[
-                Rule::requiredIf(!isset($req['dokumen'])),
-                "ends_with:.pdf,.doc,.docx,.xls,.xlsx",
-                function($attr, $value, $fail){
-                    if(trim($value)==""){
-                        return true;
-                    }
-                    if(is_document_file($value)){
-                        return true;
-                    }
-                    return $fail("document not found.");
-                }
+            'id_attachment' =>[
+                Rule::requiredIf(!isset($req['id_attachment'])),
+                Rule::exists("App\Models\AttachmentModel", "id_attachment")
             ]
         ]);
         if($validation->fails()){
@@ -395,7 +377,7 @@ class ReportController extends Controller
                 'perihal'   =>$req['perihal'],
                 'nama_pengirim' =>$req['nama_pengirim'],
                 'keterangan'    =>$req['keterangan'],
-                'dokumen'       =>trim($req['dokumen'])
+                'id_attachment' =>trim($req['id_attachment'])!=""?$req['id_attachment']:null
             ]);
             
             //pic

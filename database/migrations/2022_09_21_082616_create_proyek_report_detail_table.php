@@ -22,7 +22,7 @@ return new class extends Migration
             $table->text("perihal");
             $table->text("nama_pengirim");
             $table->text("keterangan");
-            $table->text("dokumen");
+            $table->unsignedBigInteger("id_attachment")->nullable()->comment("dokumen");
             $table->timestamps();
 
             //fk
@@ -35,6 +35,11 @@ return new class extends Migration
                 ->references("id_user")
                 ->on("tbl_users")
                 ->onDelete("cascade");
+                
+            $table->foreign("id_attachment")
+                ->references("id_attachment")
+                ->on("tbl_attachment")
+                ->onDelete("set null");
         });
     }
 

@@ -83,7 +83,7 @@ class ProyekReportRepo{
         $params['per_page']=trim($params['per_page']);
 
         //query
-        $detail=ProyekReportDetailModel::with("created_by")
+        $detail=ProyekReportDetailModel::with("created_by", "attachment:id_attachment,nama_attachment")
             ->whereHas("report", function($query)use($params){
                 $query->where("id_proyek", $params['id_proyek']);
             })
@@ -97,7 +97,7 @@ class ProyekReportRepo{
     public static function get_report_detail($report_detail_id)
     {
         //query
-        $detail=ProyekReportDetailModel::with("created_by")
+        $detail=ProyekReportDetailModel::with("created_by", "attachment:id_attachment,nama_attachment")
             ->where("id_proyek_report_detail", $report_detail_id);
 
         //return

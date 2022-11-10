@@ -28,7 +28,7 @@ class ProyekRepo{
     public static function get_proyek($proyek_id, $login_data)
     {
         //query
-        $proyek=ProyekModel::with("kapal", "report", "report.tender")
+        $proyek=ProyekModel::with("kapal", "report", "report.tender", "report.tender.shipyard")
             ->where("id_proyek", $proyek_id);
         
         //data

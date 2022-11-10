@@ -45,7 +45,7 @@ $router->group(['prefix'=>"/user", 'middleware'=>"auth"], function()use($router)
     $router->post("/", ['uses'=>"UserController@add"]);
     $router->get("/", ['uses'=>"UserController@gets"]);
     $router->get("/{id}", ['uses'=>"UserController@get_by_id"]);
-    $router->put("/user/{id}", ['uses'=>"UserController@update_by_id"]);
+    $router->put("/{id}", ['uses'=>"UserController@update_by_id"]);
     $router->delete("/{id}", ['uses'=>"UserController@delete_by_id"]);
 });
 
@@ -148,3 +148,12 @@ $router->group(['prefix'=>"/file", 'middleware'=>"auth"], function()use($router)
 $router->get("/file/show/{file}", ['uses'=>"FileController@show"]);
 $router->get("/file/attachment/{id}", ['uses'=>"FileController@get_attachment"]);
 $router->get("/file/attachment", ['uses'=>"FileController@gets_attachment"]);
+
+
+//EMAIL
+$router->group(['prefix'=>"/email", 'middleware'=>"auth"], function()use($router){
+    $router->post("/work_progress", ['uses'=>"MailController@send_work_progress"]);
+    $router->post("/work_variant", ['uses'=>"MailController@send_work_variant"]);
+    $router->post("/bast", ['uses'=>"MailController@send_bast"]);
+    $router->post("/surat_teguran", ['uses'=>"MailController@send_surat_teguran"]);
+});
