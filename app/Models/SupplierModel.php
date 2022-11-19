@@ -15,6 +15,7 @@ class SupplierModel extends Model{
         "email",
         "no_hp"
     ];
+    protected $perPage=99999999999999999999;
 
 
     /*

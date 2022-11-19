@@ -33,6 +33,7 @@ class ProyekModel extends Model{
     protected $casts=[
         'work_area'     =>'array'
     ];
+    protected $perPage=99999999999999999999;
 
 
     /*

@@ -83,7 +83,6 @@ class MailController extends Controller
         }
 
         //SUCCESS
-
         Mail::send("emails.work_progress", $req, function($message)use($req){
             $message->to($req['shipyard']['email'], $req['shipyard']['nama_user'])->subject("Pemberitahuan Work Progress");
             $message->from(env("MAIL_USERNAME"), env("MAIL_FROM_NAME"));
@@ -133,7 +132,6 @@ class MailController extends Controller
         }
 
         //SUCCESS
-
         Mail::send("emails.work_variant", $req, function($message)use($req){
             $message->to($req['shipyard']['email'], $req['shipyard']['nama_user'])->subject("Pemberitahuan Work Variant");
             $message->from(env("MAIL_USERNAME"), env("MAIL_FROM_NAME"));
@@ -177,7 +175,6 @@ class MailController extends Controller
         }
 
         //SUCCESS
-
         Mail::send("emails.bast", $req, function($message)use($req){
             $message->to($req['shipyard']['email'], $req['shipyard']['nama_user'])->subject("Pemberitahuan BAST");
             $message->from(env("MAIL_USERNAME"), env("MAIL_FROM_NAME"));
@@ -221,7 +218,6 @@ class MailController extends Controller
         }
 
         //SUCCESS
-
         Mail::send("emails.surat_teguran", $req, function($message)use($req){
             $message->to($req['shipyard']['email'], $req['shipyard']['nama_user'])->subject("Pemberitahuan Surat Teguran");
             $message->from(env("MAIL_USERNAME"), env("MAIL_FROM_NAME"));

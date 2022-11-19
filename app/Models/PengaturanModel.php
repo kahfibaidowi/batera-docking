@@ -11,4 +11,5 @@ class PengaturanModel extends Model{
     protected $primaryKey="id_pengaturan";
     protected $fillable=["tipe_pengaturan", "value_pengaturan"];
     protected $hidden=[];
+    protected $perPage=99999999999999999999;
 }

@@ -13,6 +13,7 @@ class AttachmentModel extends Model{
         "nama_attachment",
         "attachment"
     ];
+    protected $perPage=99999999999999999999;
 
 
     /*

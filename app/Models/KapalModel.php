@@ -14,6 +14,7 @@ class KapalModel extends Model{
         'foto',
     ];
     protected $hidden=[];
+    protected $perPage=99999999999999999999;
 
 
     /*

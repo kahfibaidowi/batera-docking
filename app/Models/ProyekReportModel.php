@@ -33,6 +33,7 @@ class ProyekReportModel extends Model{
         'variant_work'  =>'array'
     ];
     protected $hidden=[];
+    protected $perPage=99999999999999999999;
 
 
     /*

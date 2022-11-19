@@ -15,6 +15,7 @@ class ProyekReportPicModel extends Model{
     ];
 
     protected $hidden=[];
+    protected $perPage=99999999999999999999;
 
 
     /*
