@@ -22,7 +22,7 @@ class TrackingController extends Controller
         $req=$request->all();
 
         //ROLE AUTHENTICATION
-        if(!in_array($login_data['role'], ['admin', 'director', 'shipmanager'])){
+        if(!in_array($login_data['role'], ['admin', 'director', 'shipmanager', 'shipyard'])){
             return response()->json([
                 'error' =>"ACCESS_NOT_ALLOWED"
             ], 403);

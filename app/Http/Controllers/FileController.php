@@ -212,6 +212,13 @@ class FileController extends Controller
     {
         $login_data=$request['fm__login_data'];
         $req=$request->all();
+        
+        //ROLE AUTHENTICATION
+        if(!in_array($login_data['role'], ['admin', 'shipmanager'])){
+            return response()->json([
+                'error' =>"ACCESS_NOT_ALLOWED"
+            ], 403);
+        }
 
         //VALIDATION
         $req['id_attachment']=$id;

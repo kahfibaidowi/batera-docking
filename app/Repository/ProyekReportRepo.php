@@ -19,17 +19,17 @@ class ProyekReportRepo{
 
         //query
         $proyek_summary=ProyekReportModel::with("proyek", "proyek.kapal");
-        //q
+        //--q
         $proyek_summary=$proyek_summary->where(function($q)use($params){
             $q->whereHas("proyek.kapal", function($query)use($params){
                 $query->where("nama_kapal", "ilike", "%".$params['q']."%");
             });
         });
-        //status
+        //--status
         if($params['status']!=""){
             $proyek_summary=$proyek_summary->where("status", $params['status']);
         }
-        //shipyard
+        //--shipyard
         if($login_data['role']=="shipyard"){
             $proyek_summary=$proyek_summary->whereHas("tender", function($query)use($login_data){
                 $query->where("id_user", $login_data['id_user']);

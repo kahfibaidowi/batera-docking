@@ -18,6 +18,12 @@ class ProyekRepo{
         $proyek=$proyek->whereHas("kapal", function($query)use($params){
             $query->where("nama_kapal", "ilike", "%".$params['q']."%");
         });
+        //--shipyard
+        if($login_data['role']=="shipyard"){
+            $proyek=$proyek->whereHas("report.tender", function($query)use($login_data){
+                $query->where("id_user", $login_data['id_user']);
+            });
+        }
         //--order
         $proyek=$proyek->orderByDesc("id_proyek");
         

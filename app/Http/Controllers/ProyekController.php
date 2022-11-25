@@ -187,7 +187,7 @@ class ProyekController extends Controller
         $req=$request->all();
 
         //ROLE AUTHENTICATION
-        if(!in_array($login_data['role'], ['admin', 'shipowner', 'shipmanager'])){
+        if(!in_array($login_data['role'], ['admin', 'shipmanager'])){
             return response()->json([
                 'error' =>"ACCESS_NOT_ALLOWED"
             ], 403);
@@ -200,11 +200,6 @@ class ProyekController extends Controller
                 "required",
                 function($attr, $value, $fail)use($login_data){
                     $v=ProyekModel::where("id_proyek", $value);
-                    if($login_data['role']=="shipowner"){
-                        $v=$v->whereHas("kapal", function($q)use($login_data){
-                            $q->where("id_user", $login_data['id_user']);
-                        });
-                    }
                     if($v->count()==0){
                         return $fail("The selected id proyek is invalid.");
                     }
@@ -276,7 +271,7 @@ class ProyekController extends Controller
         $req=$request->all();
 
         //ROLE AUTHENTICATION
-        if(!in_array($login_data['role'], ['admin', 'director', 'shipmanager'])){
+        if(!in_array($login_data['role'], ['admin', 'director', 'shipmanager', 'shipyard'])){
             return response()->json([
                 'error' =>"ACCESS_NOT_ALLOWED"
             ], 403);
@@ -287,7 +282,23 @@ class ProyekController extends Controller
         $validation=Validator::make($req, [
             'id_proyek'  =>[
                 "required",
-                Rule::exists("App\Models\ProyekModel")
+                Rule::exists("App\Models\ProyekModel"),
+                function($attr, $value, $fail)use($login_data){
+                    $v=ProyekModel::where("id_proyek", $value);
+                    //shipyard
+                    if($login_data['role']=="shipyard"){
+                        $v=$v->whereHas("report.tender", function($query)use($login_data){
+                            $query->where("id_user", $login_data['id_user']);
+                        });
+                    }
+                    //get
+                    $v=$v->first();
+
+                    if(is_null($v)){
+                        return $fail("proyek not allowed");
+                    }
+                    return true;
+                }
             ]
         ]);
         if($validation->fails()){

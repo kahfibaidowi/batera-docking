@@ -24,7 +24,7 @@ class ReportController extends Controller
         $req=$request->all();
 
         //ROLE AUTHENTICATION
-        if(!in_array($login_data['role'], ['admin', 'shipowner', 'shipyard', 'shipmanager'])){
+        if(!in_array($login_data['role'], ['admin', 'shipmanager'])){
             return response()->json([
                 'error' =>"ACCESS_NOT_ALLOWED"
             ], 403);
@@ -35,26 +35,7 @@ class ReportController extends Controller
         $validation=Validator::make($req, [
             'id_proyek' =>[
                 "required",
-                function($attr, $value, $fail)use($login_data){
-                    //proyek
-                    $p=ProyekModel::has("report")->where("id_proyek", $value);
-                    //--shipowner
-                    if($login_data['role']=="shipowner"){
-                        $p=$p->whereHas("kapal", function($query)use($login_data){
-                            $query->where("id_user", $login_data['id_user']);
-                        });
-                    }
-                    //--shipyard
-                    if($login_data['role']=="shipyard"){
-                        $p=$p->whereHas("report.tender", function($query)use($login_data){
-                            $query->where("id_user", $login_data['id_user']);
-                        });
-                    }
-                    if($p->count()==0){
-                        return $fail("The selected id proyek is invalid.");
-                    }
-                    return true;
-                }
+                Rule::exists("App\Models\ProyekReportModel", "id_proyek")
             ],
             'summary_detail'=>[
                 Rule::requiredIf(!isset($req['summary_detail']))
@@ -230,7 +211,7 @@ class ReportController extends Controller
         $req=$request->all();
 
         //ROLE AUTHENTICATION
-        if(!in_array($login_data['role'], ['admin', 'shipyard', 'shipmanager'])){
+        if(!in_array($login_data['role'], ['admin', 'shipmanager'])){
             return response()->json([
                 'error' =>"ACCESS_NOT_ALLOWED"
             ], 403);
@@ -240,20 +221,7 @@ class ReportController extends Controller
         $validation=Validator::make($req, [
             'id_proyek' =>[
                 "required",
-                function($attr, $value, $fail)use($login_data){
-                    //proyek
-                    $p=ProyekModel::has("report")->where("id_proyek", $value);
-                    //--shipyard
-                    if($login_data['role']=="shipyard"){
-                        $p=$p->whereHas("report.tender", function($query)use($login_data){
-                            $query->where("id_user", $login_data['id_user']);
-                        });
-                    }
-                    if($p->count()==0){
-                        return $fail("The selected id proyek is invalid.");
-                    }
-                    return true;
-                }
+                Rule::exists("App\Models\ProyekReportModel", "id_proyek")
             ],
             'type'      =>"required|in:bast,close_out_report,surat_teguran",
             'tgl'       =>"required|date_format:Y-m-d",
@@ -314,7 +282,7 @@ class ReportController extends Controller
         $req=$request->all();
 
         //ROLE AUTHENTICATION
-        if(!in_array($login_data['role'], ['admin', 'shipyard', 'shipmanager'])){
+        if(!in_array($login_data['role'], ['admin', 'shipmanager'])){
             return response()->json([
                 'error' =>"ACCESS_NOT_ALLOWED"
             ], 403);
@@ -325,31 +293,7 @@ class ReportController extends Controller
         $validation=Validator::make($req, [
             'id_proyek_report_detail' =>[
                 "required",
-                Rule::exists("App\Models\ProyekReportDetailModel")->where(function($query)use($login_data){
-                    if(!in_array($login_data['role'], ["admin", "shipmanager"])){
-                        $query->where("id_user", $login_data['id_user']);
-                    }
-                }),
-                function($attr, $value, $fail)use($login_data){
-                    //detail
-                    $b=ProyekReportDetailModel::with("report")->where("id_proyek_report_detail", $value);
-                    if($b->count()==0){
-                        return $fail("The selected id proyek report detail is invalid.");
-                    }
-
-                    //proyek
-                    $p=ProyekModel::has("report")->where("id_proyek", $b->first()['report']['id_proyek']);
-                    //--shipyard
-                    if($login_data['role']=="shipyard"){
-                        $p=$p->whereHas("report.tender", function($query)use($login_data){
-                            $query->where("id_user", $login_data['id_user']);
-                        });
-                    }
-                    if($p->count()==0){
-                        return $fail("The selected id proyek is invalid.");
-                    }
-                    return true;
-                }
+                Rule::exists("App\Models\ProyekReportDetailModel", "id_proyek_report_detail")
             ],
             'tgl'       =>"required|date_format:Y-m-d",
             'perihal'   =>"required",
@@ -405,7 +349,7 @@ class ReportController extends Controller
         $req=$request->all();
 
         //ROLE AUTHENTICATION
-        if(!in_array($login_data['role'], ['admin', 'shipyard', 'shipmanager'])){
+        if(!in_array($login_data['role'], ['admin', 'shipmanager'])){
             return response()->json([
                 'error' =>"ACCESS_NOT_ALLOWED"
             ], 403);
@@ -416,31 +360,7 @@ class ReportController extends Controller
         $validation=Validator::make($req, [
             'id_proyek_report_detail' =>[
                 "required",
-                Rule::exists("App\Models\ProyekReportDetailModel")->where(function($query)use($login_data){
-                    if(!in_array($login_data['role'], ["admin", "shipmanager"])){
-                        $query->where("id_user", $login_data['id_user']);
-                    }
-                }),
-                function($attr, $value, $fail)use($login_data){
-                    //detail
-                    $b=ProyekReportDetailModel::with("report")->where("id_proyek_report_detail", $value);
-                    if($b->count()==0){
-                        return $fail("The selected id proyek report detail is invalid.");
-                    }
-
-                    //proyek
-                    $p=ProyekModel::has("report")->where("id_proyek", $b->first()['report']['id_proyek']);
-                    //--shipyard
-                    if($login_data['role']=="shipyard"){
-                        $p=$p->whereHas("report.tender", function($query)use($login_data){
-                            $query->where("id_user", $login_data['id_user']);
-                        });
-                    }
-                    if($p->count()==0){
-                        return $fail("The selected id proyek is invalid.");
-                    }
-                    return true;
-                }
+                Rule::exists("App\Models\ProyekReportDetailModel", "id_proyek_report_detail")
             ]
         ]);
         if($validation->fails()){
