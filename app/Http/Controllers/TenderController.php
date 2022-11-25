@@ -377,7 +377,7 @@ class TenderController extends Controller
         $req=$request->all();
 
         //ROLE AUTHENTICATION
-        if(!in_array($login_data['role'], ['admin', 'shipmanager'])){
+        if(!in_array($login_data['role'], ['admin', 'shipmanager', 'shipyard'])){
             return response()->json([
                 'error' =>"ACCESS_NOT_ALLOWED"
             ], 403);
@@ -388,7 +388,20 @@ class TenderController extends Controller
         $validation=Validator::make($req, [
             'id_tender' =>[
                 "required",
-                Rule::exists("App\Models\TenderModel")
+                Rule::exists("App\Models\TenderModel"),
+                function($attr, $value, $fail)use($login_data){
+                    //tender
+                    $p=TenderModel::where("id_tender", $value);
+                    
+                    //--shipyard
+                    if($login_data['role']=="shipyard"){
+                        $p=$p->where("id_user", $login_data['id_user']);
+                    }
+                    if($p->count()==0){
+                        return $fail("The selected id tender is invalid.");
+                    }
+                    return true;
+                }
             ],
             'work_area' =>"required"
         ]);
