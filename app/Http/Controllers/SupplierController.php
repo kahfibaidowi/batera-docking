@@ -96,7 +96,7 @@ class SupplierController extends Controller
         $supplier=(object)[];
         DB::transaction(function() use($req, $login_data, &$supplier){
             $update=SupplierModel::where("id_supplier", $req['id_supplier'])
-                ->updateOrCreate([
+                ->update([
                     'nama_supplier' =>$req['nama_supplier'],
                     'alamat'        =>$req['alamat'],
                     'email'         =>$req['email'],

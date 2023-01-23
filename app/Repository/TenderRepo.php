@@ -13,7 +13,7 @@ class TenderRepo{
         $params['per_page']=trim($params['per_page']);
 
         //query
-        $tender=TenderModel::with("shipyard");
+        $tender=TenderModel::with("shipyard", "attachment:id_attachment,nama_attachment");
         //--order
         $tender=$tender->orderByDesc("id_tender");
         
@@ -24,7 +24,7 @@ class TenderRepo{
     public static function get_tender($tender_id)
     {
         //query
-        $tender=TenderModel::with("report.proyek", "shipyard")
+        $tender=TenderModel::with("report.proyek", "shipyard", "attachment:id_attachment,nama_attachment")
             ->where("id_tender", $tender_id)
             ->orderBy("id_tender")
             ->first()

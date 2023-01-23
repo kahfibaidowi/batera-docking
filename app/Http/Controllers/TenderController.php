@@ -44,18 +44,9 @@ class TenderController extends Controller
             'general_diskon_persen' =>"required|numeric|between:0,100",
             'additional_diskon' =>"required|numeric|min:0",
             'sum_internal_adjusment'=>"required|numeric|min:0",
-            'dokumen'   =>[
-                Rule::requiredIf(!isset($req['dokumen'])),
-                "ends_with:.pdf,.doc,.docx,.xls,.xlsx",
-                function($attr, $value, $fail){
-                    if(trim($value)==""){
-                        return true;
-                    }
-                    if(is_document_file($value)){
-                        return true;
-                    }
-                    return $fail("document not found.");
-                }
+            'id_attachment' =>[
+                Rule::requiredIf(!isset($req['id_attachment'])),
+                Rule::exists("App\Models\AttachmentModel", "id_attachment")
             ],
             'no_kontrak'    =>"required",
             'komentar'      =>[
@@ -79,7 +70,7 @@ class TenderController extends Controller
                 'general_diskon_persen' =>$req['general_diskon_persen'],
                 'additional_diskon' =>$req['additional_diskon'],
                 'sum_internal_adjusment'=>$req['sum_internal_adjusment'],
-                'dokumen_kontrak'   =>$req['dokumen'],
+                'id_attachment'     =>trim($req['id_attachment'])!=""?$req['id_attachment']:null,
                 'no_kontrak'        =>$req['no_kontrak'],
                 'komentar'          =>$req['komentar'],
                 'nama_galangan'     =>$req['nama_galangan'],
@@ -116,18 +107,9 @@ class TenderController extends Controller
             'general_diskon_persen' =>"required|numeric|between:0,100",
             'additional_diskon' =>"required|numeric|min:0",
             'sum_internal_adjusment'=>"required|numeric|min:0",
-            'dokumen'   =>[
-                Rule::requiredIf(!isset($req['dokumen'])),
-                "ends_with:.pdf,.doc,.docx,.xls,.xlsx",
-                function($attr, $value, $fail){
-                    if(trim($value)==""){
-                        return true;
-                    }
-                    if(is_document_file($value)){
-                        return true;
-                    }
-                    return $fail("document not found.");
-                }
+            'id_attachment' =>[
+                Rule::requiredIf(!isset($req['id_attachment'])),
+                Rule::exists("App\Models\AttachmentModel", "id_attachment")
             ],
             'no_kontrak'    =>"required",
             'komentar'      =>[
@@ -151,7 +133,7 @@ class TenderController extends Controller
                     'general_diskon_persen' =>$req['general_diskon_persen'],
                     'additional_diskon' =>$req['additional_diskon'],
                     'sum_internal_adjusment'=>$req['sum_internal_adjusment'],
-                    'dokumen_kontrak'   =>$req['dokumen'],
+                    'id_attachment'     =>trim($req['id_attachment'])!=""?$req['id_attachment']:null,
                     'no_kontrak'        =>$req['no_kontrak'],
                     'komentar'          =>$req['komentar'],
                     'nama_galangan'     =>$req['nama_galangan'],

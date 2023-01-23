@@ -11,7 +11,7 @@ class TenderModel extends Model{
     protected $primaryKey="id_tender";
     protected $fillable=[
         'id_user',
-        'dokumen_kontrak',
+        'id_attachment',
         'no_kontrak',
         'komentar',
         'nama_galangan',
@@ -38,5 +38,9 @@ class TenderModel extends Model{
 
     public function report(){
         return $this->hasOne(ProyekReportModel::class, "id_tender");
+    }
+    
+    public function attachment(){
+        return $this->belongsTo(AttachmentModel::class, "id_attachment");
     }
 }

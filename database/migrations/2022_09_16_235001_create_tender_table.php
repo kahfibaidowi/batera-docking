@@ -16,7 +16,7 @@ return new class extends Migration
         Schema::create("tbl_tender", function (Blueprint $table) {
             $table->id("id_tender");
             $table->unsignedBigInteger("id_user")->comment("shipyard/galangan(responsible)");
-            $table->text("dokumen_kontrak");
+            $table->unsignedBigInteger("id_attachment")->nullable()->comment("dokumen kontraknya");
             $table->text("no_kontrak");
             $table->text("komentar");
             $table->text("nama_galangan");
@@ -33,6 +33,10 @@ return new class extends Migration
                 ->references("id_user")
                 ->on("tbl_users")
                 ->onDelete("cascade");
+            $table->foreign("id_attachment")
+                ->references("id_attachment")
+                ->on("tbl_attachment")
+                ->onDelete("set null");
         });
     }
 
